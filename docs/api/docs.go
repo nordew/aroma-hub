@@ -79,6 +79,191 @@ const docTemplate = `{
                 }
             }
         },
+        "/orders": {
+            "get": {
+                "description": "Get a list of orders with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "List orders",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Payment method (IBAN, сash_on_delivery)",
+                        "name": "paymentMethod",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Contact type (telegram, phone)",
+                        "name": "contactType",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Order status (pending, processing, completed, cancelled)",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start date for filtering (format: YYYY-MM-DD)",
+                        "name": "fromDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End date for filtering (format: YYYY-MM-DD)",
+                        "name": "toDate",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of orders",
+                        "schema": {
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.ListOrdersResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "No orders found",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new order",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Create order",
+                "parameters": [
+                    {
+                        "description": "Order information",
+                        "name": "order",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.CreateOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}": {
+            "delete": {
+                "description": "Delete an order by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Delete order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/products": {
             "get": {
                 "description": "Get a list of products with optional filtering",
@@ -263,6 +448,60 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "aroma-hub_internal_application_dto.CreateOrderRequest": {
+            "type": "object",
+            "required": [
+                "address",
+                "amountToPay",
+                "contactType",
+                "fullName",
+                "paymentMethod",
+                "phoneNumber",
+                "userId"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "amountToPay": {
+                    "type": "number"
+                },
+                "contactType": {
+                    "enum": [
+                        "telegram",
+                        "phone"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/aroma-hub_internal_models.ContactType"
+                        }
+                    ]
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "paymentMethod": {
+                    "enum": [
+                        "IBAN",
+                        "сash_on_delivery"
+                    ],
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/aroma-hub_internal_models.PaymentMethod"
+                        }
+                    ]
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "promoCode": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
         "aroma-hub_internal_application_dto.CreateProductRequest": {
             "type": "object",
             "properties": {
@@ -295,6 +534,20 @@ const docTemplate = `{
                 }
             }
         },
+        "aroma-hub_internal_application_dto.ListOrdersResponse": {
+            "type": "object",
+            "properties": {
+                "orders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/aroma-hub_internal_models.Order"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "aroma-hub_internal_models.Category": {
             "type": "object",
             "properties": {
@@ -311,6 +564,82 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "aroma-hub_internal_models.ContactType": {
+            "type": "string",
+            "enum": [
+                "telegram",
+                "phone"
+            ],
+            "x-enum-varnames": [
+                "ContactTypeTelegram",
+                "ContactTypePhone"
+            ]
+        },
+        "aroma-hub_internal_models.Order": {
+            "type": "object",
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "amountToPay": {
+                    "type": "number"
+                },
+                "contactType": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.ContactType"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "paymentMethod": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.PaymentMethod"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "promoCode": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.OrderStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "string"
+                }
+            }
+        },
+        "aroma-hub_internal_models.OrderStatus": {
+            "type": "string",
+            "enum": [
+                "pending",
+                "processing",
+                "completed"
+            ],
+            "x-enum-varnames": [
+                "OrderStatusPending",
+                "OrderStatusProcessing",
+                "OrderStatusCompleted"
+            ]
+        },
+        "aroma-hub_internal_models.PaymentMethod": {
+            "type": "string",
+            "enum": [
+                "IBAN",
+                "сash_on_delivery"
+            ],
+            "x-enum-varnames": [
+                "PaymentMethodIBAN",
+                "PaymentMethodCashOnDelivery"
+            ]
         },
         "aroma-hub_internal_models.Product": {
             "type": "object",

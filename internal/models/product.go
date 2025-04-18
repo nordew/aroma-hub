@@ -16,7 +16,8 @@ const (
 
 type Product struct {
 	ID              string    `json:"id"`
-	CategoryID      string    `json:"categoryId"`
+	CategoryID      string    `json:"-"`
+	CategoryName    string    `json:"categoryName"`
 	Brand           string    `json:"brand"`
 	Name            string    `json:"name"`
 	ImageURL        string    `json:"imageUrl"`

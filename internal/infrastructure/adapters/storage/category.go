@@ -7,24 +7,11 @@ import (
 	"fmt"
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nordew/go-errx"
 	"strings"
 )
 
-type CategoryStorage struct {
-	pool *pgxpool.Pool
-	sb   squirrel.StatementBuilderType
-}
-
-func NewCategoryStorage(pool *pgxpool.Pool) *CategoryStorage {
-	return &CategoryStorage{
-		pool: pool,
-		sb:   squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
-	}
-}
-
-func (s *CategoryStorage) Create(ctx context.Context, category models.Category) (*models.Category, error) {
+func (s *Storage) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
 	query := `
 		INSERT INTO categories (name)
 		VALUES ($1)
@@ -56,8 +43,8 @@ func (s *CategoryStorage) Create(ctx context.Context, category models.Category) 
 	return &result, nil
 }
 
-func (s *CategoryStorage) List(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error) {
-	baseQuery, countQuery := s.buildSearchQuery(filter)
+func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error) {
+	baseQuery, countQuery := s.buildSearchCategoryQuery(filter)
 
 	limit := uint(10)
 	if filter.Limit > 0 && filter.Limit <= 100 {
@@ -119,7 +106,7 @@ func (s *CategoryStorage) List(ctx context.Context, filter dto.ListCategoryFilte
 	return categories, totalCount, nil
 }
 
-func (s *CategoryStorage) buildSearchQuery(filter dto.ListCategoryFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
+func (s *Storage) buildSearchCategoryQuery(filter dto.ListCategoryFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
 	baseQuery := s.sb.Select(
 		"id",
 		"name",
@@ -142,7 +129,7 @@ func (s *CategoryStorage) buildSearchQuery(filter dto.ListCategoryFilter) (squir
 	return baseQuery, countQuery
 }
 
-func (s *CategoryStorage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
+func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 	var categories []models.Category
 
 	for rows.Next() {
@@ -173,7 +160,7 @@ func (s *CategoryStorage) scanCategories(rows pgx.Rows) ([]models.Category, erro
 	return categories, nil
 }
 
-func (s *CategoryStorage) Delete(ctx context.Context, id int) error {
+func (s *Storage) DeleteCategory(ctx context.Context, id int) error {
 	result, err := s.pool.Exec(ctx, "DELETE FROM categories WHERE id = $1", id)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(

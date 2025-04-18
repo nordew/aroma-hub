@@ -1,0 +1,82 @@
+INSERT INTO products (
+    id, category_id, Brand, Name, image_url, Description,
+    Composition, Characteristics, Price, stock_amount,
+    created_at, updated_at
+) VALUES
+('f8c7d6e5-b4a3-2c1d-0e9f-8a7b6c5d4e3f', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Chanel', 'No. 5', 'https://example.com/images/chanel-no5.jpg',
+'The classic feminine fragrance that has become an icon of luxury.',
+'Aldehydes, Rose, Jasmine, Ylang-Ylang, Sandalwood',
+'Floral, Powdery, Aldehydic, Elegant, Timeless',
+12990, 45,
+'2024-04-01 10:00:00', '2024-04-01 10:00:00'),
+
+('a1b2c3d4-e5f6-4a3b-9c8d-1e2f3a4b5c6d', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Dior', 'Sauvage', 'https://example.com/images/dior-sauvage.jpg',
+'A powerful masculine fragrance inspired by wild, open spaces.',
+'Bergamot, Pepper, Ambroxan, Patchouli, Geranium',
+'Fresh, Spicy, Woody, Bold, Long-lasting',
+14500, 38,
+'2024-04-02 11:15:00', '2024-04-02 11:15:00'),
+
+('b2c3d4e5-f6a7-4b3c-8d9e-2f3a4b5c6d7e', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Tom Ford', 'Black Orchid', 'https://example.com/images/tomford-blackorchid.jpg',
+'A luxurious and sensual fragrance featuring the exotic black orchid.',
+'Black Truffle, Ylang-Ylang, Black Orchid, Patchouli, Incense',
+'Oriental, Floral, Rich, Sensual, Mysterious',
+19900, 20,
+'2024-04-03 09:30:00', '2024-04-03 09:30:00'),
+
+('c3d4e5f6-a7b8-4c3d-9e0f-3a4b5c6d7e8f', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Gucci', 'Bloom', 'https://example.com/images/gucci-bloom.jpg',
+'A rich floral scent designed to unfold like its name.',
+'Jasmine, Tuberose, Rangoon Creeper, Orris Root',
+'Floral, White Floral, Rich, Feminine, Elegant',
+11800, 55,
+'2024-04-04 14:45:00', '2024-04-04 14:45:00'),
+
+('d4e5f6a7-b8c9-4d3e-0f1a-4b5c6d7e8f9a', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Versace', 'Eros', 'https://example.com/images/versace-eros.jpg',
+'A bold, sensual fragrance inspired by Greek mythology.',
+'Mint, Green Apple, Lemon, Tonka Bean, Ambroxan, Vanilla',
+'Fresh, Sweet, Aromatic, Seductive, Masculine',
+10500, 62,
+'2024-04-05 12:00:00', '2024-04-05 12:00:00'),
+
+('e5f6a7b8-c9d0-4e3f-1a2b-5c6d7e8f9a0b', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Jo Malone', 'Wood Sage & Sea Salt', 'https://example.com/images/jomalone-woodsage.jpg',
+'A fresh and mineral scent reminiscent of coastal landscapes.',
+'Ambrette Seeds, Sea Salt, Sage, Grapefruit, Red Algae',
+'Fresh, Woody, Salty, Natural, Unisex',
+13800, 32,
+'2024-04-06 16:20:00', '2024-04-06 16:20:00'),
+
+('f6a7b8c9-d0e1-4f3a-2b3c-6d7e8f9a0b1c', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Yves Saint Laurent', 'Black Opium', 'https://example.com/images/ysl-blackopium.jpg',
+'An addictive, energetic feminine fragrance with coffee accords.',
+'Coffee, Vanilla, White Flowers, Orange Blossom, Pear',
+'Sweet, Gourmand, Warm, Addictive, Energetic',
+12700, 41,
+'2024-04-07 10:30:00', '2024-04-07 10:30:00'),
+
+('a7b8c9d0-e1f2-4a3b-3c4d-7e8f9a0b1c2d', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Creed', 'Aventus', 'https://example.com/images/creed-aventus.jpg',
+'A sophisticated masculine fragrance celebrating strength and success.',
+'Pineapple, Bergamot, Blackcurrant, Birch, Ambergris, Vanilla',
+'Fruity, Woody, Rich, Sophisticated, Powerful',
+32500, 15,
+'2024-04-08 11:45:00', '2024-04-08 11:45:00'),
+
+('b8c9d0e1-f2a3-4b5c-4d5e-8f9a0b1c2d3e', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Byredo', 'Gypsy Water', 'https://example.com/images/byredo-gypsywater.jpg',
+'A bohemian fragrance inspired by Romani traditions and folklore.',
+'Bergamot, Lemon, Pepper, Incense, Pine Needle, Vanilla',
+'Woody, Aromatic, Fresh, Bohemian, Unisex',
+18900, 22,
+'2024-04-09 13:15:00', '2024-04-09 13:15:00'),
+
+('c9d0e1f2-a3b4-4c5d-6e7f-9a0b1c2d3e4f', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Maison Francis Kurkdjian', 'Baccarat Rouge 540', 'https://example.com/images/mfk-baccarat540.jpg',
+'A luxurious amber floral fragrance with ethereal qualities.',
+'Saffron, Jasmine, Amberwood, Cedar, Ambergris',
+'Amber, Floral, Sweet, Ethereal, Luxurious',
+29900, 18,
+'2024-04-10 09:00:00', '2024-04-10 09:00:00'),
+
+('d0e1f2a3-b4c5-4d6e-7f8a-0b1c2d3e4f5a', '2193cc49-ae70-40cc-ba7c-8fe8cd28da3d', 'Diptyque', 'Do Son', 'https://example.com/images/diptyque-doson.jpg',
+'A heady white floral fragrance inspired by Vietnamese seaside memories.',
+'Tuberose, Orange Blossom, Jasmine, Marine Accord, Musk',
+'White Floral, Fresh, Exotic, Feminine, Elegant',
+16800, 27,
+'2024-04-11 15:30:00', '2024-04-11 15:30:00')
+

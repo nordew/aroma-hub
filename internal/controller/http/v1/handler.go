@@ -5,24 +5,25 @@ import (
 	"aroma-hub/internal/config"
 	"context"
 	"fmt"
+	"log"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/nordew/go-errx"
-	"log"
 )
 
-type productService interface {
-	Create(ctx context.Context, input dto.CreateProductRequest) error
-	List(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
-	Delete(ctx context.Context, id string) error
+type Service interface {
+	CreateProduct(ctx context.Context, input dto.CreateProductRequest) error
+	ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
+	DeleteProduct(ctx context.Context, id string) error
 }
 
 type Handler struct {
-	productService productService
+	service Service
 }
 
-func NewHandler(productService productService) *Handler {
+func NewHandler(service Service) *Handler {
 	return &Handler{
-		productService: productService,
+		service: service,
 	}
 }
 
@@ -31,10 +32,16 @@ func (h *Handler) MustInitAndRun(router *fiber.App, cfg config.Server) {
 
 	h.initProductRoutes(api)
 
+	api.Get("/health", h.healthCheck)
+
 	port := fmt.Sprintf(":%d", cfg.Port)
 	if err := router.Listen(port); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
+}
+
+func (h *Handler) healthCheck(c *fiber.Ctx) error {
+	return c.SendStatus(fiber.StatusOK)
 }
 
 func handleError(c *fiber.Ctx, err error, operation string) error {

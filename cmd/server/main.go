@@ -2,8 +2,9 @@ package main
 
 import (
 	"aroma-hub/internal/application"
-	"github.com/joho/godotenv"
 	"log"
+
+	"github.com/joho/godotenv"
 )
 
 func init() {
@@ -12,6 +13,10 @@ func init() {
 	}
 }
 
+// @title						Aroma-Hub API
+// @version					1.0
+// @description				dAPI documentation.
+// @BasePath					/api/v1
 func main() {
 	application.MustRun()
 }

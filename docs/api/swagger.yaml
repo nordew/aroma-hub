@@ -1,0 +1,221 @@
+basePath: /api/v1
+definitions:
+  aroma-hub_internal_application_dto.CreateProductRequest:
+    properties:
+      brand:
+        type: string
+      categoryName:
+        type: string
+      characteristics:
+        type: string
+      composition:
+        type: string
+      description:
+        type: string
+      imageUrl:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+      stockAmount:
+        type: integer
+    type: object
+  aroma-hub_internal_models.Product:
+    properties:
+      brand:
+        type: string
+      categoryName:
+        type: string
+      characteristics:
+        type: string
+      composition:
+        type: string
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
+      stockAmount:
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  errx.Code:
+    enum:
+    - CONFLICT
+    - INTERNAL
+    - NOT_FOUND
+    - BAD_REQUEST
+    - ALREADY_EXISTS
+    - UNAUTHORIZED
+    - FORBIDDEN
+    - TIMEOUT
+    - VALIDATION
+    type: string
+    x-enum-comments:
+      AlreadyExists: Resource already exists
+      BadRequest: Invalid input or parameters
+      Conflict: Resource conflicts with existing data
+      Forbidden: Permission denied
+      Internal: Internal server or system errors
+      NotFound: Resource not found
+      Timeout: Operation timed out
+      Unauthorized: Authentication required
+      Validation: Input validation failed
+    x-enum-varnames:
+    - Conflict
+    - Internal
+    - NotFound
+    - BadRequest
+    - AlreadyExists
+    - Unauthorized
+    - Forbidden
+    - Timeout
+    - Validation
+  errx.Error:
+    properties:
+      code:
+        allOf:
+        - $ref: '#/definitions/errx.Code'
+        description: Error classification code
+      err:
+        description: Original error (if any)
+      message:
+        description: User-friendly error message
+        type: string
+    type: object
+info:
+  contact: {}
+  description: dAPI documentation.
+  title: Aroma-Hub API
+  version: "1.0"
+paths:
+  /products:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of products with optional filtering
+      parameters:
+      - description: Product ID
+        in: query
+        name: id
+        type: string
+      - description: Category ID
+        in: query
+        name: categoryId
+        type: string
+      - description: Category name
+        in: query
+        name: categoryName
+        type: string
+      - description: Brand name
+        in: query
+        name: brand
+        type: string
+      - description: Product name
+        in: query
+        name: name
+        type: string
+      - description: Minimum price
+        in: query
+        name: priceFrom
+        type: integer
+      - description: Maximum price
+        in: query
+        name: priceTo
+        type: integer
+      - description: Minimum stock amount
+        in: query
+        name: stockAmountFrom
+        type: integer
+      - description: Maximum stock amount
+        in: query
+        name: stockAmountTo
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of products
+          schema:
+            items:
+              $ref: '#/definitions/aroma-hub_internal_models.Product'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: List products
+      tags:
+      - products
+    post:
+      consumes:
+      - application/json
+      description: Add a new product to the inventory
+      parameters:
+      - description: Product information
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created successfully
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Create product
+      tags:
+      - products
+  /products/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Remove a product from the inventory
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Delete product
+      tags:
+      - products
+swagger: "2.0"

@@ -22,6 +22,7 @@ type ListProductResponse struct {
 type ListProductFilter struct {
 	ID              string `json:"id"`
 	CategoryID      string `json:"categoryId"`
+	CategoryName    string `json:"categoryName"`
 	Brand           string `json:"brand"`
 	Name            string `json:"name"`
 	PriceFrom       uint   `json:"priceFrom"`

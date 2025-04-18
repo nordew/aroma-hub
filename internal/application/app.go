@@ -5,7 +5,7 @@ import (
 	"aroma-hub/internal/config"
 	v1 "aroma-hub/internal/controller/http/v1"
 	"aroma-hub/internal/infrastructure/adapters/storage"
-	pgsql "aroma-hub/pkg/client/db"
+	"aroma-hub/pkg/client/db/pgsql"
 	"context"
 	"github.com/gofiber/fiber/v2"
 )
@@ -21,12 +21,11 @@ func MustRun() {
 		pgsql.MustMigrate(ctx, pool, cfg.Postgres)
 	}
 
-	productStorage := storage.NewProductStorage(pool)
-	categoryStorage := storage.NewCategoryStorage(pool)
+	storages := storage.NewStorage(pool)
 
-	productService := service.NewProductService(productStorage, categoryStorage)
+	services := service.NewService(storages)
 
-	handler := v1.NewHandler(productService)
+	handler := v1.NewHandler(services)
 
 	router := fiber.New()
 

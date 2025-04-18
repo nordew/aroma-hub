@@ -21,6 +21,9 @@ stop:
 logs:
 	docker logs -f $(APP_NAME)
 
+swagger: ## Generate swagger documentation
+	@swag init -g cmd/server/main.go -o docs/api --outputTypes go,yaml --parseDependency --parseInternal
+
 help:
 	@echo "Available commands:"
 	@echo "  make build    - Build the Docker image without cache"

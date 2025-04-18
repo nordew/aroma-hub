@@ -5,7 +5,7 @@ type CreateCategoryRequest struct {
 }
 
 type ListCategoryFilter struct {
-	ID    int    `json:"id"`
+	ID    string `json:"id"`
 	Name  string `json:"name"`
 	Limit uint   `json:"limit"`
 	Page  uint   `json:"page"`

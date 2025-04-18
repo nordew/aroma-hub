@@ -56,6 +56,8 @@ func handleError(c *fiber.Ctx, err error, operation string) error {
 		return writeErrorResponse(c, fiber.StatusInternalServerError, "internal server error: "+operation)
 	case errx.IsCode(err, errx.BadRequest):
 		return writeErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	case errx.IsCode(err, errx.BadRequest):
+		return writeErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	default:
 		return writeErrorResponse(c, fiber.StatusInternalServerError, "unexpected error: "+operation)
 	}

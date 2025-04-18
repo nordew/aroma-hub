@@ -10,6 +10,8 @@ type Storage interface {
 	CreateProduct(ctx context.Context, product models.Product) error
 	ListProducts(ctx context.Context, filter dto.ListProductFilter) ([]models.Product, int64, error)
 	DeleteProduct(ctx context.Context, id string) error
+
+	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error)
 }
 
 type Service struct {

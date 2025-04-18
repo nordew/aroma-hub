@@ -15,6 +15,8 @@ type Service interface {
 	CreateProduct(ctx context.Context, input dto.CreateProductRequest) error
 	ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
 	DeleteProduct(ctx context.Context, id string) error
+
+	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) (dto.ListCategoryResponse, error)
 }
 
 type Handler struct {
@@ -31,6 +33,7 @@ func (h *Handler) MustInitAndRun(router *fiber.App, cfg config.Server) {
 	api := router.Group(cfg.BasePath)
 
 	h.initProductRoutes(api)
+	h.initCategoryRoutes(api)
 
 	api.Get("/health", h.healthCheck)
 

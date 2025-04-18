@@ -9,32 +9,10 @@ import (
 	"time"
 )
 
-type productStorage interface {
-	Create(ctx context.Context, product models.Product) error
-	List(ctx context.Context, filter dto.ListProductFilter) ([]models.Product, int64, error)
-	Delete(ctx context.Context, id string) error
-}
-
-type categoryStorage interface {
-	List(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error)
-}
-
-type ProductService struct {
-	productStorage  productStorage
-	categoryStorage categoryStorage
-}
-
-func NewProductService(productStorage productStorage, storage categoryStorage) *ProductService {
-	return &ProductService{
-		productStorage:  productStorage,
-		categoryStorage: storage,
-	}
-}
-
-func (s *ProductService) Create(ctx context.Context, input dto.CreateProductRequest) error {
+func (s *Service) CreateProduct(ctx context.Context, input dto.CreateProductRequest) error {
 	now := time.Now()
 
-	_, _, err := s.productStorage.List(ctx, dto.ListProductFilter{
+	_, _, err := s.storage.ListProducts(ctx, dto.ListProductFilter{
 		CategoryID: input.CategoryID,
 	})
 	if err != nil {
@@ -60,11 +38,11 @@ func (s *ProductService) Create(ctx context.Context, input dto.CreateProductRequ
 		UpdatedAt:       now,
 	}
 
-	return s.productStorage.Create(ctx, product)
+	return s.storage.CreateProduct(ctx, product)
 }
 
-func (s *ProductService) List(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error) {
-	products, total, err := s.productStorage.List(ctx, filter)
+func (s *Service) ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error) {
+	products, total, err := s.storage.ListProducts(ctx, filter)
 	if err != nil {
 		return dto.ListProductResponse{}, err
 	}
@@ -75,6 +53,6 @@ func (s *ProductService) List(ctx context.Context, filter dto.ListProductFilter)
 	}, nil
 }
 
-func (s *ProductService) Delete(ctx context.Context, id string) error {
-	return s.productStorage.Delete(ctx, id)
+func (s *Service) DeleteProduct(ctx context.Context, id string) error {
+	return s.storage.DeleteProduct(ctx, id)
 }

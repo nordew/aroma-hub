@@ -9,18 +9,18 @@ import (
 func (h *Handler) initProductRoutes(api fiber.Router) {
 	products := api.Group("/products")
 
-	products.Get("/", h.getProducts)
+	products.Get("/", h.listProducts)
 	products.Post("/", h.createProduct)
 	products.Delete("/:id", h.deleteProduct)
 }
 
-func (h *Handler) getProducts(c *fiber.Ctx) error {
+func (h *Handler) listProducts(c *fiber.Ctx) error {
 	var filter dto.ListProductFilter
 	if err := c.QueryParser(&filter); err != nil {
 		return writeErrorResponse(c, fiber.StatusBadRequest, "invalid query params")
 	}
 
-	resp, err := h.productService.List(context.Background(), filter)
+	resp, err := h.service.ListProducts(context.Background(), filter)
 	if err := handleError(c, err, "listing products"); err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (h *Handler) createProduct(c *fiber.Ctx) error {
 		return writeErrorResponse(c, fiber.StatusBadRequest, "invalid request body")
 	}
 
-	err := h.productService.Create(context.Background(), input)
+	err := h.service.CreateProduct(context.Background(), input)
 	if err := handleError(c, err, "creating product"); err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (h *Handler) deleteProduct(c *fiber.Ctx) error {
 		return writeErrorResponse(c, fiber.StatusBadRequest, "invalid product id")
 	}
 
-	err := h.productService.Delete(context.Background(), id)
+	err := h.service.DeleteProduct(context.Background(), id)
 	if err := handleError(c, err, "deleting product"); err != nil {
 		return err
 	}

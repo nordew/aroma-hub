@@ -12,6 +12,10 @@ type Storage interface {
 	DeleteProduct(ctx context.Context, id string) error
 
 	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error)
+
+	CreateOrder(ctx context.Context, order models.Order) (models.Order, error)
+	ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([]models.Order, int64, error)
+	DeleteOrder(ctx context.Context, id string) error
 }
 
 type Service struct {

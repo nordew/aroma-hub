@@ -1,9 +1,10 @@
 package models
 
 import (
-	"github.com/nordew/go-errx"
 	"strings"
 	"time"
+
+	"github.com/nordew/go-errx"
 )
 
 const (
@@ -33,8 +34,8 @@ type Product struct {
 func NewProduct(
 	id, categoryID, brand, name, imageURL, description, composition, characteristics string,
 	price, stockAmount uint,
-) (*Product, error) {
-	p := &Product{
+) (Product, error) {
+	p := Product{
 		ID:              id,
 		CategoryID:      categoryID,
 		Brand:           brand,
@@ -50,7 +51,7 @@ func NewProduct(
 	}
 
 	if err := p.Validate(); err != nil {
-		return nil, err
+		return Product{}, err
 	}
 
 	return p, nil

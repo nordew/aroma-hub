@@ -3,7 +3,7 @@ package dto
 import "aroma-hub/internal/models"
 
 type CreateProductRequest struct {
-	CategoryID      string `json:"categoryId"`
+	CategoryName    string `json:"categoryName"`
 	Brand           string `json:"brand"`
 	Name            string `json:"name"`
 	ImageURL        string `json:"imageUrl"`

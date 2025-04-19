@@ -1,8 +1,10 @@
 package models
 
 import (
-	"github.com/nordew/go-errx"
 	"time"
+
+	"github.com/google/uuid"
+	"github.com/nordew/go-errx"
 )
 
 var (
@@ -11,13 +13,13 @@ var (
 )
 
 type Category struct {
-	ID        int       `json:"id"`
+	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func NewCategory(id int, name string) (*Category, error) {
+func NewCategory(id string, name string) (*Category, error) {
 	c := &Category{
 		ID:        id,
 		Name:      name,
@@ -33,9 +35,10 @@ func NewCategory(id int, name string) (*Category, error) {
 }
 
 func (c *Category) Validate() error {
-	if c.ID <= 0 {
+	if _, err := uuid.Parse(c.ID); err != nil {
 		return errx.NewValidation().WithDescription(ErrInvalidID)
 	}
+
 	if c.Name == "" {
 		return errx.NewValidation().WithDescription(ErrEmptyCategoryName)
 	}

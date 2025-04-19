@@ -5,10 +5,11 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/nordew/go-errx"
-	"strings"
 )
 
 func (s *Storage) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
@@ -78,7 +79,7 @@ func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFil
 	}
 
 	if totalCount == 0 {
-		return []models.Category{}, 0, nil
+		return []models.Category{}, 0, errx.NewNotFound().WithDescription("no categories found")
 	}
 
 	sql, args, err := baseQuery.ToSql()
@@ -116,7 +117,7 @@ func (s *Storage) buildSearchCategoryQuery(filter dto.ListCategoryFilter) (squir
 
 	countQuery := s.sb.Select("COUNT(*)").From("categories")
 
-	if filter.ID > 0 {
+	if filter.ID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"id": filter.ID})
 		countQuery = countQuery.Where(squirrel.Eq{"id": filter.ID})
 	}

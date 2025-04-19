@@ -7,7 +7,11 @@ import (
 	"aroma-hub/internal/infrastructure/adapters/storage"
 	"aroma-hub/pkg/client/db/pgsql"
 	"context"
+
+	_ "aroma-hub/docs/api"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/swagger"
 )
 
 func MustRun() {
@@ -29,5 +33,15 @@ func MustRun() {
 
 	router := fiber.New()
 
+	setSwagger(router)
+
 	handler.MustInitAndRun(router, cfg.Server)
+}
+
+func setSwagger(router *fiber.App) {
+	router.Get("/swagger/*", swagger.New(swagger.Config{
+		URL:         "/swagger/doc.json",
+		DeepLinking: true,
+		Title:       "Aroma-Hub API",
+	}))
 }

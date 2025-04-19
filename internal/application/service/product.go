@@ -4,39 +4,38 @@ import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/models"
 	"context"
+
+	"log"
+
 	"github.com/google/uuid"
-	"github.com/nordew/go-errx"
-	"time"
 )
 
 func (s *Service) CreateProduct(ctx context.Context, input dto.CreateProductRequest) error {
-	now := time.Now()
-
-	_, _, err := s.storage.ListProducts(ctx, dto.ListProductFilter{
-		CategoryID: input.CategoryID,
+	categories, _, err := s.storage.ListCategories(ctx, dto.ListCategoryFilter{
+		Name: input.CategoryName,
 	})
 	if err != nil {
-		if errx.IsCode(err, errx.NotFound) {
-			return errx.NewBadRequest().WithDescription("category not found")
-		}
+		return err
+	}
+	category := categories[0]
 
-		return errx.NewInternal().WithDescriptionAndCause("failed to list products", err)
+	product, err := models.NewProduct(
+		uuid.NewString(),
+		category.ID,
+		input.Brand,
+		input.Name,
+		input.ImageURL,
+		input.Description,
+		input.Composition,
+		input.Characteristics,
+		input.Price,
+		input.StockAmount,
+	)
+	if err != nil {
+		return err
 	}
 
-	product := models.Product{
-		ID:              uuid.NewString(),
-		CategoryID:      input.CategoryID,
-		Brand:           input.Brand,
-		Name:            input.Name,
-		ImageURL:        input.ImageURL,
-		Description:     input.Description,
-		Composition:     input.Composition,
-		Characteristics: input.Characteristics,
-		Price:           input.Price,
-		StockAmount:     input.StockAmount,
-		CreatedAt:       now,
-		UpdatedAt:       now,
-	}
+	log.Print("Creating product", "product", product)
 
 	return s.storage.CreateProduct(ctx, product)
 }

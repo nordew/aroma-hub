@@ -4,6 +4,9 @@ import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/models"
 	"context"
+	"time"
+
+	"github.com/nordew/go-errx"
 )
 
 func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest) error {
@@ -21,9 +24,31 @@ func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest)
 		return err
 	}
 
+	if order.PromoCode != "" {
+		if err := s.checkPromoCode(ctx, order.PromoCode); err != nil {
+			return err
+		}
+	}
+
 	_, err = s.storage.CreateOrder(ctx, order)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *Service) checkPromoCode(ctx context.Context, promoCode string) error {
+	promoCodes, _, err := s.storage.ListPromocodes(ctx, dto.ListPromocodeFilter{
+		Code: promoCode,
+	})
+	if err != nil {
+		return err
+	}
+	code := promoCodes[0]
+
+	if code.ExpiresAt.Before(time.Now()) {
+		return errx.NewForbidden().WithDescription("Promo code has expired")
 	}
 
 	return nil

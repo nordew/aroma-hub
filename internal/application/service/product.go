@@ -5,8 +5,6 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 
-	"log"
-
 	"github.com/google/uuid"
 )
 
@@ -34,8 +32,6 @@ func (s *Service) CreateProduct(ctx context.Context, input dto.CreateProductRequ
 	if err != nil {
 		return err
 	}
-
-	log.Print("Creating product", "product", product)
 
 	return s.storage.CreateProduct(ctx, product)
 }

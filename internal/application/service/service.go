@@ -16,6 +16,10 @@ type Storage interface {
 	CreateOrder(ctx context.Context, order models.Order) (models.Order, error)
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([]models.Order, int64, error)
 	DeleteOrder(ctx context.Context, id string) error
+
+	CreatePromocode(ctx context.Context, promocode models.Promocode) error
+	ListPromocodes(ctx context.Context, filter dto.ListPromocodeFilter) ([]models.Promocode, int64, error)
+	DeletePromocode(ctx context.Context, id string) error
 }
 
 type Service struct {

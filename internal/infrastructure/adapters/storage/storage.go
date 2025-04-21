@@ -5,6 +5,10 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const (
+	uniqueViolationCode = "23505"
+)
+
 type Storage struct {
 	pool *pgxpool.Pool
 	sb   squirrel.StatementBuilderType

@@ -5,7 +5,6 @@ import (
 	"aroma-hub/internal/config"
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/nordew/go-errx"
@@ -21,6 +20,10 @@ type Service interface {
 	CreateOrder(ctx context.Context, order dto.CreateOrderRequest) error
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.ListOrdersResponse, error)
 	DeleteOrder(ctx context.Context, id string) error
+
+	CreatePromocode(ctx context.Context, input dto.CreatePromocodeRequest) error
+	ListPromocodes(ctx context.Context, filter dto.ListPromocodeFilter) (dto.ListPromocodesResponse, error)
+	DeletePromocode(ctx context.Context, id string) error
 }
 
 type Handler struct {
@@ -33,19 +36,17 @@ func NewHandler(service Service) *Handler {
 	}
 }
 
-func (h *Handler) MustInitAndRun(router *fiber.App, cfg config.Server) {
+func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	api := router.Group(cfg.BasePath)
 
 	h.initProductRoutes(api)
 	h.initCategoryRoutes(api)
 	h.initOrderRoutes(api)
-
+	h.initPromocodeRoutes(api)
 	api.Get("/health", h.healthCheck)
 
 	port := fmt.Sprintf(":%d", cfg.Port)
-	if err := router.Listen(port); err != nil {
-		log.Fatalf("failed to start server: %v", err)
-	}
+	return router.Listen(port)
 }
 
 func (h *Handler) healthCheck(c *fiber.Ctx) error {
@@ -68,6 +69,10 @@ func handleError(c *fiber.Ctx, err error, operation string) error {
 		return writeErrorResponse(c, fiber.StatusBadRequest, err.Error())
 	case errx.IsCode(err, errx.Validation):
 		return writeErrorResponse(c, fiber.StatusBadRequest, err.Error())
+	case errx.IsCode(err, errx.Unauthorized):
+		return writeErrorResponse(c, fiber.StatusUnauthorized, err.Error())
+	case errx.IsCode(err, errx.Forbidden):
+		return writeErrorResponse(c, fiber.StatusForbidden, err.Error())
 	default:
 		return writeErrorResponse(c, fiber.StatusInternalServerError, "unexpected error: "+operation)
 	}

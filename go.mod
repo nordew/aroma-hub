@@ -12,6 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/nordew/go-errx v0.0.0-20250401173920-bde193010626
 	github.com/pressly/goose v2.7.0+incompatible
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/swaggo/swag v1.16.4
 )
 

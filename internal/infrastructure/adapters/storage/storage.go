@@ -1,8 +1,8 @@
 package storage
 
 import (
-	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5/pgxpool"
+	pgxtransactor "github.com/nordew/pgx-transactor"
 )
 
 const (
@@ -10,13 +10,13 @@ const (
 )
 
 type Storage struct {
-	pool *pgxpool.Pool
-	sb   squirrel.StatementBuilderType
+	pgxtransactor.Storage
+	squirrelHelper *pgxtransactor.SquirrelHelper
 }
 
 func NewStorage(pool *pgxpool.Pool) *Storage {
 	return &Storage{
-		pool: pool,
-		sb:   squirrel.StatementBuilder.PlaceholderFormat(squirrel.Dollar),
+		Storage:        pgxtransactor.NewBaseStorage(pool),
+		squirrelHelper: pgxtransactor.NewSquirrelHelper(),
 	}
 }

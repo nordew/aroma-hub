@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nordew/go-errx"
+	"github.com/shopspring/decimal"
 )
 
 const (
@@ -16,24 +17,24 @@ const (
 )
 
 type Product struct {
-	ID              string    `json:"id"`
-	CategoryID      string    `json:"-"`
-	CategoryName    string    `json:"categoryName"`
-	Brand           string    `json:"brand"`
-	Name            string    `json:"name"`
-	ImageURL        string    `json:"imageUrl"`
-	Description     string    `json:"description"`
-	Composition     string    `json:"composition"`
-	Characteristics string    `json:"characteristics"`
-	Price           uint      `json:"price"`
-	StockAmount     uint      `json:"stockAmount"`
-	CreatedAt       time.Time `json:"createdAt"`
-	UpdatedAt       time.Time `json:"updatedAt"`
+	ID              string          `json:"id"`
+	CategoryID      string          `json:"-"`
+	CategoryName    string          `json:"categoryName"`
+	Brand           string          `json:"brand"`
+	Name            string          `json:"name"`
+	ImageURL        string          `json:"imageUrl"`
+	Description     string          `json:"description"`
+	Composition     string          `json:"composition"`
+	Characteristics string          `json:"characteristics"`
+	Price           decimal.Decimal `json:"price"`
+	StockAmount     uint            `json:"stockAmount"`
+	CreatedAt       time.Time       `json:"createdAt"`
+	UpdatedAt       time.Time       `json:"updatedAt"`
 }
 
 func NewProduct(
 	id, categoryID, brand, name, imageURL, description, composition, characteristics string,
-	price, stockAmount uint,
+	price decimal.Decimal, stockAmount uint,
 ) (Product, error) {
 	p := Product{
 		ID:              id,
@@ -70,7 +71,7 @@ func (p *Product) Validate() error {
 	if p.ImageURL != "" && !strings.HasPrefix(p.ImageURL, "http") {
 		return errx.NewValidation().WithDescription(ErrInvalidImageURL)
 	}
-	if p.Price == 0 {
+	if p.Price == decimal.Zero {
 		return errx.NewValidation().WithDescription(ErrInvalidProductPrice)
 	}
 

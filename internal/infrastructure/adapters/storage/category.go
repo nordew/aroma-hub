@@ -18,15 +18,13 @@ func (s *Storage) CreateCategory(ctx context.Context, category models.Category) 
 		VALUES ($1)
 		RETURNING id, name, created_at, updated_at
 	`
-
 	var result models.Category
-	err := s.pool.QueryRow(ctx, query, category.Name).Scan(
+	err := s.GetQuerier().QueryRow(ctx, query, category.Name).Scan(
 		&result.ID,
 		&result.Name,
 		&result.CreatedAt,
 		&result.UpdatedAt,
 	)
-
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
 			return nil, errx.NewAlreadyExists().WithDescriptionAndCause(
@@ -34,43 +32,30 @@ func (s *Storage) CreateCategory(ctx context.Context, category models.Category) 
 				err,
 			)
 		}
-
 		return nil, errx.NewInternal().WithDescriptionAndCause(
 			"failed to create category",
 			err,
 		)
 	}
-
 	return &result, nil
 }
 
 func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error) {
 	baseQuery, countQuery := s.buildSearchCategoryQuery(filter)
-
 	limit := uint(10)
 	if filter.Limit > 0 && filter.Limit <= 100 {
 		limit = filter.Limit
 	}
-
 	offset := uint(0)
 	if filter.Page > 0 {
 		offset = (filter.Page - 1) * limit
 	}
-
 	baseQuery = baseQuery.OrderBy("created_at DESC").
 		Limit(uint64(limit)).
 		Offset(uint64(offset))
 
-	countSQL, countArgs, err := countQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to build count query",
-			err,
-		)
-	}
-
 	var totalCount int64
-	err = s.pool.QueryRow(ctx, countSQL, countArgs...).Scan(&totalCount)
+	err := s.squirrelHelper.QueryRow(ctx, s.GetQuerier(), countQuery).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
 			"failed to count categories",
@@ -82,15 +67,7 @@ func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFil
 		return []models.Category{}, 0, errx.NewNotFound().WithDescription("no categories found")
 	}
 
-	sql, args, err := baseQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to build query",
-			err,
-		)
-	}
-
-	rows, err := s.pool.Query(ctx, sql, args...)
+	rows, err := s.squirrelHelper.Query(ctx, s.GetQuerier(), baseQuery)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
 			"failed to query categories",
@@ -108,14 +85,14 @@ func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFil
 }
 
 func (s *Storage) buildSearchCategoryQuery(filter dto.ListCategoryFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
-	baseQuery := s.sb.Select(
+	baseQuery := s.Builder().Select(
 		"id",
 		"name",
 		"created_at",
 		"updated_at",
 	).From("categories")
 
-	countQuery := s.sb.Select("COUNT(*)").From("categories")
+	countQuery := s.Builder().Select("COUNT(*)").From("categories")
 
 	if filter.ID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"id": filter.ID})
@@ -135,12 +112,14 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 
 	for rows.Next() {
 		var category models.Category
+
 		err := rows.Scan(
 			&category.ID,
 			&category.Name,
 			&category.CreatedAt,
 			&category.UpdatedAt,
 		)
+
 		if err != nil {
 			return nil, errx.NewInternal().WithDescriptionAndCause(
 				"failed to scan category",
@@ -162,7 +141,7 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 }
 
 func (s *Storage) DeleteCategory(ctx context.Context, id int) error {
-	result, err := s.pool.Exec(ctx, "DELETE FROM categories WHERE id = $1", id)
+	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM categories WHERE id = $1", id)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
 			"category deletion failed",

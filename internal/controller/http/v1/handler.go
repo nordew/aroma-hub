@@ -5,8 +5,10 @@ import (
 	"aroma-hub/internal/config"
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/labstack/gommon/log"
 	"github.com/nordew/go-errx"
 )
 
@@ -27,16 +29,20 @@ type Service interface {
 }
 
 type Handler struct {
-	service Service
+	service    Service
+	middleware *Middleware
 }
 
-func NewHandler(service Service) *Handler {
+func NewHandler(service Service, logger *slog.Logger) *Handler {
 	return &Handler{
-		service: service,
+		service:    service,
+		middleware: NewMiddleware(logger),
 	}
 }
 
 func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
+	router.Use(h.middleware.RequestLogger())
+
 	api := router.Group(cfg.BasePath)
 
 	h.initProductRoutes(api)
@@ -46,6 +52,11 @@ func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	api.Get("/health", h.healthCheck)
 
 	port := fmt.Sprintf(":%d", cfg.Port)
+	h.middleware.logger.Info("starting server",
+		slog.String("port", port),
+		slog.String("basePath", cfg.BasePath),
+	)
+
 	return router.Listen(port)
 }
 
@@ -58,9 +69,11 @@ func handleError(c *fiber.Ctx, err error, operation string) error {
 		return nil
 	}
 
+	log.Error("error occurred during operation", slog.String("operation", operation), slog.String("error", err.Error()))
+
 	switch {
 	case errx.IsCode(err, errx.NotFound):
-		return writeErrorResponse(c, fiber.StatusNotFound, "resource not found")
+		return writeErrorResponse(c, fiber.StatusNotFound, err.Error())
 	case errx.IsCode(err, errx.Internal):
 		return writeErrorResponse(c, fiber.StatusInternalServerError, "internal server error: "+operation)
 	case errx.IsCode(err, errx.BadRequest):

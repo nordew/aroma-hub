@@ -26,7 +26,7 @@ func (s *Storage) CreatePromocode(ctx context.Context, promocode models.Promocod
 		)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`
-	_, err := s.pool.Exec(ctx, query,
+	_, err := s.GetQuerier().Exec(ctx, query,
 		promocode.ID,
 		promocode.Code,
 		promocode.Discount,
@@ -73,16 +73,9 @@ func (s *Storage) ListPromocodes(ctx context.Context, filter dto.ListPromocodeFi
 		Limit(uint64(limit)).
 		Offset(uint64(offset))
 
-	countSQL, countArgs, err := countQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to build count query",
-			err,
-		)
-	}
-
 	var totalCount int64
-	err = s.pool.QueryRow(ctx, countSQL, countArgs...).Scan(&totalCount)
+	countRow := s.squirrelHelper.QueryRow(ctx, s.GetQuerier(), countQuery)
+	err := countRow.Scan(&totalCount)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
 			"failed to count promocodes",
@@ -94,15 +87,8 @@ func (s *Storage) ListPromocodes(ctx context.Context, filter dto.ListPromocodeFi
 		return []models.Promocode{}, 0, errx.NewNotFound().WithDescription("no promocodes found")
 	}
 
-	sql, args, err := baseQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to build query",
-			err,
-		)
-	}
-
-	rows, err := s.pool.Query(ctx, sql, args...)
+	// Use squirrelHelper to execute the base query
+	rows, err := s.squirrelHelper.Query(ctx, s.GetQuerier(), baseQuery)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
 			"failed to query promocodes",
@@ -120,7 +106,7 @@ func (s *Storage) ListPromocodes(ctx context.Context, filter dto.ListPromocodeFi
 }
 
 func (s *Storage) buildSearchPromocodeQuery(filter dto.ListPromocodeFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
-	baseQuery := s.sb.Select(
+	baseQuery := s.Builder().Select(
 		"id",
 		"code",
 		"discount",
@@ -129,7 +115,7 @@ func (s *Storage) buildSearchPromocodeQuery(filter dto.ListPromocodeFilter) (squ
 		"updated_at",
 	).From("promocodes")
 
-	countQuery := s.sb.Select("COUNT(*)").From("promocodes")
+	countQuery := s.Builder().Select("COUNT(*)").From("promocodes")
 
 	if filter.ID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"id": filter.ID})
@@ -197,7 +183,7 @@ func (s *Storage) scanPromocodes(rows pgx.Rows) ([]models.Promocode, error) {
 }
 
 func (s *Storage) DeletePromocode(ctx context.Context, id string) error {
-	result, err := s.pool.Exec(ctx, "DELETE FROM promocodes WHERE id = $1", id)
+	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM promocodes WHERE id = $1", id)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
 			"promocode deletion failed",

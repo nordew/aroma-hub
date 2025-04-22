@@ -10,6 +10,7 @@ import (
 	"aroma-hub/pkg/client/db/pgsql"
 	"context"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
+	pgxtransactor "github.com/nordew/pgx-transactor"
 )
 
 func MustRun() {
@@ -35,13 +37,20 @@ func MustRun() {
 		pgsql.MustMigrate(ctx, pool, cfg.Postgres)
 	}
 
+	transactor := pgxtransactor.NewTransactor(pool)
+
 	storages := storage.NewStorage(pool)
-	services := service.NewService(storages)
+	services := service.NewService(storages, transactor)
 
 	promocodeWorker := workers.NewPromocodeWorker(services, logger)
 	promocodeWorker.Start()
 
-	handler := v1.NewHandler(services)
+	slogHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	})
+	slogLogger := slog.New(slogHandler)
+
+	handler := v1.NewHandler(services, slogLogger)
 	router := createRouter(&cfg)
 	setSwagger(router)
 

@@ -5,7 +5,6 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -15,7 +14,7 @@ import (
 )
 
 func (s *Storage) CreateProduct(ctx context.Context, product models.Product) error {
-	_, err := s.pool.Exec(
+	_, err := s.GetQuerier().Exec(
 		ctx,
 		`
 		INSERT INTO products (id, category_id, brand, name, image_url, description, composition, characteristics, price, stock_amount)
@@ -66,13 +65,9 @@ func (s *Storage) ListProducts(ctx context.Context, filter dto.ListProductFilter
 
 	baseQuery = baseQuery.Limit(uint64(limit)).Offset(uint64(offset))
 
-	countSQL, countArgs, err := countQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to build count query", err)
-	}
-
 	var totalCount int64
-	err = s.pool.QueryRow(ctx, countSQL, countArgs...).Scan(&totalCount)
+	countRow := s.squirrelHelper.QueryRow(ctx, s.GetQuerier(), countQuery)
+	err := countRow.Scan(&totalCount)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to get total count", err)
 	}
@@ -80,12 +75,7 @@ func (s *Storage) ListProducts(ctx context.Context, filter dto.ListProductFilter
 		return []models.Product{}, 0, errx.NewNotFound().WithDescription("no products found")
 	}
 
-	sql, args, err := baseQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to build query", err)
-	}
-
-	rows, err := s.pool.Query(ctx, sql, args...)
+	rows, err := s.squirrelHelper.Query(ctx, s.GetQuerier(), baseQuery)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to execute query", err)
 	}
@@ -100,7 +90,7 @@ func (s *Storage) ListProducts(ctx context.Context, filter dto.ListProductFilter
 }
 
 func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
-	baseQuery := s.sb.Select(
+	baseQuery := s.Builder().Select(
 		"p.id",
 		"p.category_id",
 		"c.name AS category_name",
@@ -118,11 +108,12 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		From("products p").
 		LeftJoin("categories c ON p.category_id = c.id")
 
-	countQuery := s.sb.Select("COUNT(*)").From("products p")
+	countQuery := s.Builder().Select("COUNT(*)").From("products p").
+		LeftJoin("categories c ON p.category_id = c.id")
 
-	if filter.ID != "" {
-		baseQuery = baseQuery.Where(squirrel.Eq{"p.id": filter.ID})
-		countQuery = countQuery.Where(squirrel.Eq{"p.id": filter.ID})
+	if len(filter.IDs) > 0 {
+		baseQuery = baseQuery.Where(squirrel.Eq{"p.id": filter.IDs})
+		countQuery = countQuery.Where(squirrel.Eq{"p.id": filter.IDs})
 	}
 	if filter.CategoryID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.category_id": filter.CategoryID})
@@ -203,13 +194,13 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 }
 
 func (s *Storage) DeleteProduct(ctx context.Context, id string) error {
-	_, err := s.pool.Exec(ctx, "DELETE FROM products WHERE id = $1", id)
+	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM products WHERE id = $1", id)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return errx.NewNotFound().WithDescription("product not found")
-		}
-
 		return errx.NewInternal().WithDescriptionAndCause("product deletion failed", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return errx.NewNotFound().WithDescription("product not found")
 	}
 
 	return nil

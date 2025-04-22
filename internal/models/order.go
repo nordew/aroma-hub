@@ -7,10 +7,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/nordew/go-errx"
+	"github.com/shopspring/decimal"
 )
 
 var (
-	ErrIDRequired            = "ID is required"
+	ErrIDInvalid             = "ID is invalid"
 	ErrUserIDRequired        = "UserID is required"
 	ErrFullNameRequired      = "FullName is required"
 	ErrPhoneNumberInvalid    = "PhoneNumber is invalid"
@@ -19,6 +20,7 @@ var (
 	ErrPromoCodeRequired     = "PromoCode is required"
 	ErrContactTypeRequired   = "ContactType is required"
 	ErrAmountToPayInvalid    = "AmountToPay must be greater than 0"
+	ErrItemAlreadyExists     = "Item already exists"
 )
 
 const (
@@ -45,24 +47,27 @@ const (
 	OrderStatusPending    OrderStatus = "pending"
 	OrderStatusProcessing OrderStatus = "processing"
 	OrderStatusCompleted  OrderStatus = "completed"
+	OrderStatusCancelled  OrderStatus = "cancelled"
 )
 
 type Order struct {
-	ID            string        `json:"id"`
-	UserID        string        `json:"userId"`
-	FullName      string        `json:"fullName"`
-	PhoneNumber   string        `json:"phoneNumber"`
-	Address       string        `json:"address"`
-	PaymentMethod PaymentMethod `json:"paymentMethod"`
-	PromoCode     string        `json:"promoCode"`
-	ContactType   ContactType   `json:"contactType"`
-	AmountToPay   float64       `json:"amountToPay"`
-	Status        OrderStatus   `json:"status"`
-	CreatedAt     time.Time     `json:"createdAt"`
-	UpdatedAt     time.Time     `json:"updatedAt"`
+	ID            string          `json:"id"`
+	UserID        string          `json:"userId"`
+	FullName      string          `json:"fullName"`
+	PhoneNumber   string          `json:"phoneNumber"`
+	Address       string          `json:"address"`
+	PaymentMethod PaymentMethod   `json:"paymentMethod"`
+	PromoCode     string          `json:"promoCode"`
+	ContactType   ContactType     `json:"contactType"`
+	AmountToPay   decimal.Decimal `json:"amountToPay"`
+	Status        OrderStatus     `json:"status"`
+	Products      []Product       `json:"products"`
+	CreatedAt     time.Time       `json:"createdAt"`
+	UpdatedAt     time.Time       `json:"updatedAt"`
 }
 
 func NewOrder(
+	id string,
 	userID string,
 	fullName string,
 	phoneNumber string,
@@ -70,11 +75,11 @@ func NewOrder(
 	paymentMethod PaymentMethod,
 	promoCode string,
 	contactType ContactType,
-	amountToPay float64) (Order, error) {
+	amountToPay decimal.Decimal) (Order, error) {
 	now := time.Now()
 
 	order := Order{
-		ID:            uuid.New().String(),
+		ID:            id,
 		UserID:        userID,
 		FullName:      fullName,
 		PhoneNumber:   phoneNumber,
@@ -96,8 +101,8 @@ func NewOrder(
 }
 
 func (o Order) validate() error {
-	if o.ID == "" {
-		return errx.NewValidation().WithDescription(ErrIDRequired)
+	if _, err := uuid.Parse(o.ID); err != nil {
+		return errx.NewInternal().WithDescription(ErrIDInvalid)
 	}
 	if o.UserID == "" {
 		return errx.NewValidation().WithDescription(ErrUserIDRequired)
@@ -114,19 +119,27 @@ func (o Order) validate() error {
 	if o.PaymentMethod == "" {
 		return errx.NewValidation().WithDescription(ErrPaymentMethodRequired)
 	}
-	if o.PromoCode == "" {
-		return errx.NewValidation().WithDescription(ErrPromoCodeRequired)
-	}
 	if o.ContactType == "" {
 		return errx.NewValidation().WithDescription(ErrContactTypeRequired)
 	}
-	if o.AmountToPay <= 0 {
+	if o.AmountToPay.LessThanOrEqual(decimal.Zero) {
 		return errx.NewValidation().WithDescription(ErrAmountToPayInvalid)
 	}
+
 	return nil
 }
 
-func (pm *PaymentMethod) Scan(value interface{}) error {
+func (o *Order) AddProduct(product Product) {
+	for _, existingProduct := range o.Products {
+		if existingProduct.ID == product.ID {
+			return
+		}
+	}
+
+	o.Products = append(o.Products, product)
+}
+
+func (pm *PaymentMethod) Scan(value any) error {
 	switch v := value.(type) {
 	case string:
 		*pm = PaymentMethod(v)
@@ -138,7 +151,7 @@ func (pm *PaymentMethod) Scan(value interface{}) error {
 	return nil
 }
 
-func (ct *ContactType) Scan(value interface{}) error {
+func (ct *ContactType) Scan(value any) error {
 	switch v := value.(type) {
 	case string:
 		*ct = ContactType(v)

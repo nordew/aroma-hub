@@ -16,6 +16,8 @@ func (h *Handler) initOrderRoutes(api fiber.Router) {
 	orders.Get("/", h.listOrders)
 	orders.Post("/", h.createOrder)
 	orders.Delete("/:id", h.deleteOrder)
+	orders.Put("/:id/cancel", h.cancelOrder)
+	orders.Put("/:id", h.updateOrder)
 }
 
 // @Summary List orders
@@ -95,6 +97,68 @@ func (h *Handler) createOrder(c *fiber.Ctx) error {
 	}
 
 	return writeResponse(c, fiber.StatusCreated, "")
+}
+
+// @Summary Update order
+// @Description Update an existing order
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param id path string true "Order ID"
+// @Param order body dto.UpdateOrderRequest true "Order information"
+// @Success 200 "Updated"
+// @Failure 400 {object} errx.Error "Bad request"
+// @Failure 404 {object} errx.Error "Order not found"
+// @Failure 500 {object} errx.Error "Internal server error"
+// @Router /orders/{id} [put]
+func (h *Handler) updateOrder(c *fiber.Ctx) error {
+	const op = "updateOrder"
+
+	id := c.Params("id")
+	if id == "" {
+		return handleError(c, errx.NewBadRequest().WithDescription("id is empty"), op)
+	}
+
+	var input dto.UpdateOrderRequest
+	if err := c.BodyParser(&input); err != nil {
+		return handleError(c, errx.NewBadRequest().WithDescriptionAndCause("invalid request body", err), op)
+	}
+
+	input.ID = id
+
+	err := h.service.UpdateOrder(context.Background(), input)
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusOK, nil)
+}
+
+// @Summary Cancel order
+// @Description Cancel an order by ID
+// @Tags orders
+// @Accept json
+// @Produce json
+// @Param id path string true "Order ID"
+// @Success 200 "Order cancelled"
+// @Failure 400 {object} errx.Error "Bad request"
+// @Failure 404 {object} errx.Error "Order not found"
+// @Failure 500 {object} errx.Error "Internal server error"
+// @Router /orders/{id}/cancel [put]
+func (h *Handler) cancelOrder(c *fiber.Ctx) error {
+	const op = "cancelOrder"
+
+	id := c.Params("id")
+	if id == "" {
+		return handleError(c, errx.NewBadRequest().WithDescription("id is empty"), op)
+	}
+
+	err := h.service.CancelOrder(context.Background(), id)
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusOK, nil)
 }
 
 // @Summary Delete order

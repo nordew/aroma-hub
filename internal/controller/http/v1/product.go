@@ -14,6 +14,8 @@ func (h *Handler) initProductRoutes(api fiber.Router) {
 	products := api.Group("/products")
 
 	products.Get("/", h.listProducts)
+
+	products.Use(h.middleware.Auth())
 	products.Post("/", h.createProduct)
 	products.Delete("/:id", h.deleteProduct)
 }

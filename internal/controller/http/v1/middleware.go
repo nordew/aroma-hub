@@ -1,7 +1,10 @@
 package v1
 
 import (
+	"aroma-hub/pkg/auth"
+	"errors"
 	"log/slog"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -9,11 +12,46 @@ import (
 )
 
 type Middleware struct {
-	logger *slog.Logger
+	logger       *slog.Logger
+	tokenService *auth.TokenService
 }
 
-func NewMiddleware(logger *slog.Logger) *Middleware {
-	return &Middleware{logger: logger}
+func NewMiddleware(logger *slog.Logger, tokenService *auth.TokenService) *Middleware {
+	return &Middleware{
+		logger:       logger,
+		tokenService: tokenService,
+	}
+}
+
+func (m *Middleware) Auth() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		token := c.Get("Authorization")
+		if token == "" {
+			return fiber.NewError(fiber.StatusUnauthorized, "missing token")
+		}
+
+		splitToken := strings.Split(token, "Bearer ")
+		if len(splitToken) != 2 {
+			return fiber.NewError(fiber.StatusUnauthorized, "invalid token format")
+		}
+
+		token = strings.TrimSpace(splitToken[1])
+
+		userID, err := m.tokenService.VerifyAccessToken(token)
+		if err != nil {
+			if errors.Is(err, auth.ErrExpiredToken) {
+				return fiber.NewError(fiber.StatusUnauthorized, "token expired")
+			}
+			if errors.Is(err, auth.ErrInvalidToken) {
+				return fiber.NewError(fiber.StatusUnauthorized, "invalid token")
+			}
+
+			return fiber.NewError(fiber.StatusInternalServerError, "failed to verify token")
+		}
+
+		c.Locals("userID", userID)
+		return c.Next()
+	}
 }
 
 func (m *Middleware) RequestLogger() fiber.Handler {

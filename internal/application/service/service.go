@@ -3,7 +3,9 @@ package service
 import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/models"
+	"aroma-hub/pkg/auth"
 	"context"
+	stash "github.com/nordew/go-stash"
 
 	pgxtransactor "github.com/nordew/pgx-transactor"
 )
@@ -31,16 +33,27 @@ type Storage interface {
 	CreatePromocode(ctx context.Context, promocode models.Promocode) error
 	ListPromocodes(ctx context.Context, filter dto.ListPromocodeFilter) ([]models.Promocode, int64, error)
 	DeletePromocode(ctx context.Context, id string) error
+
+	ListAdmins(ctx context.Context, filter dto.ListAdminFilter) ([]models.Admin, error)
 }
 
 type Service struct {
-	storage    Storage
-	transactor *pgxtransactor.Transactor
+	storage      Storage
+	transactor   *pgxtransactor.Transactor
+	cache        stash.Cache
+	tokenService *auth.TokenService
 }
 
-func NewService(storage Storage, transactor *pgxtransactor.Transactor) *Service {
+func NewService(
+	storage Storage,
+	transactor *pgxtransactor.Transactor,
+	cache stash.Cache,
+	tokenService *auth.TokenService,
+) *Service {
 	return &Service{
-		storage:    storage,
-		transactor: transactor,
+		storage:      storage,
+		transactor:   transactor,
+		cache:        cache,
+		tokenService: tokenService,
 	}
 }

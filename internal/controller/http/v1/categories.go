@@ -12,6 +12,9 @@ import (
 
 func (h *Handler) initCategoryRoutes(api fiber.Router) {
 	categories := api.Group("/categories")
+
+	categories.Use(h.middleware.Auth())
+
 	categories.Get("/", h.listCategories)
 	categories.Post("/", h.createCategory)
 	categories.Delete("/:id", h.deleteCategory)

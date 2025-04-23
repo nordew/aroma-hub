@@ -13,11 +13,14 @@ import (
 
 func (h *Handler) initOrderRoutes(api fiber.Router) {
 	orders := api.Group("/orders")
-	orders.Get("/", h.listOrders)
+
 	orders.Post("/", h.createOrder)
+
+	orders.Use(h.middleware.Auth())
+	orders.Get("/", h.listOrders)
+	orders.Put("/:id", h.updateOrder)
 	orders.Delete("/:id", h.deleteOrder)
 	orders.Put("/:id/cancel", h.cancelOrder)
-	orders.Put("/:id", h.updateOrder)
 }
 
 // @Summary List orders

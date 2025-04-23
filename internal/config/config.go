@@ -3,6 +3,7 @@ package config
 type Config struct {
 	Server   Server   `env-prefix:"SERVER_"`
 	Postgres Postgres `env-prefix:"POSTGRES_"`
+	Telegram Telegram `env-prefix:"TELEGRAM_"`
 }
 
 type Server struct {
@@ -18,4 +19,8 @@ type Postgres struct {
 	DSN           string `env:"DSN"`
 	Migrate       bool   `env:"MIGRATE"`
 	MigrationsDir string `env:"MIGRATIONS_DIR"`
+}
+
+type Telegram struct {
+	Token string `env:"TOKEN"`
 }

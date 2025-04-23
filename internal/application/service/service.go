@@ -16,7 +16,9 @@ type Storage interface {
 	UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error
 	DeleteProduct(ctx context.Context, id string) error
 
+	CreateCategory(ctx context.Context, category models.Category) error
 	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error)
+	DeleteCategory(ctx context.Context, id string) error
 
 	CreateOrder(ctx context.Context, order models.Order) (models.Order, error)
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([]models.Order, int64, error)

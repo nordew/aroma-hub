@@ -12,44 +12,54 @@ import (
 	"github.com/nordew/go-errx"
 )
 
-func (s *Storage) CreateCategory(ctx context.Context, category models.Category) (*models.Category, error) {
+var (
+	ErrCategoryNotFound        = "category not found"
+	ErrNoCategoriesFound       = "no categories found"
+	ErrFailedToCreateCategory  = "failed to create category"
+	ErrFailedToCountCategories = "failed to count categories"
+	ErrFailedToQueryCategories = "failed to query categories"
+	ErrFailedToScanCategory    = "failed to scan category"
+	ErrRowsError               = "rows error"
+	ErrCategoryDeletionFailed  = "category deletion failed"
+)
+
+func (s *Storage) CreateCategory(ctx context.Context, category models.Category) error {
 	query := `
 		INSERT INTO categories (name)
 		VALUES ($1)
-		RETURNING id, name, created_at, updated_at
 	`
-	var result models.Category
-	err := s.GetQuerier().QueryRow(ctx, query, category.Name).Scan(
-		&result.ID,
-		&result.Name,
-		&result.CreatedAt,
-		&result.UpdatedAt,
-	)
+
+	_, err := s.GetQuerier().Exec(ctx, query, category.Name)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
-			return nil, errx.NewAlreadyExists().WithDescriptionAndCause(
+			return errx.NewAlreadyExists().WithDescriptionAndCause(
 				fmt.Sprintf("category with name '%s' already exists", category.Name),
 				err,
 			)
 		}
-		return nil, errx.NewInternal().WithDescriptionAndCause(
-			"failed to create category",
+
+		return errx.NewInternal().WithDescriptionAndCause(
+			ErrFailedToCreateCategory,
 			err,
 		)
 	}
-	return &result, nil
+
+	return nil
 }
 
 func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error) {
 	baseQuery, countQuery := s.buildSearchCategoryQuery(filter)
+
 	limit := uint(10)
 	if filter.Limit > 0 && filter.Limit <= 100 {
 		limit = filter.Limit
 	}
+
 	offset := uint(0)
 	if filter.Page > 0 {
 		offset = (filter.Page - 1) * limit
 	}
+
 	baseQuery = baseQuery.OrderBy("created_at DESC").
 		Limit(uint64(limit)).
 		Offset(uint64(offset))
@@ -58,19 +68,19 @@ func (s *Storage) ListCategories(ctx context.Context, filter dto.ListCategoryFil
 	err := s.squirrelHelper.QueryRow(ctx, s.GetQuerier(), countQuery).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to count categories",
+			ErrFailedToCountCategories,
 			err,
 		)
 	}
 
 	if totalCount == 0 {
-		return []models.Category{}, 0, errx.NewNotFound().WithDescription("no categories found")
+		return []models.Category{}, 0, errx.NewNotFound().WithDescription(ErrNoCategoriesFound)
 	}
 
 	rows, err := s.squirrelHelper.Query(ctx, s.GetQuerier(), baseQuery)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to query categories",
+			ErrFailedToQueryCategories,
 			err,
 		)
 	}
@@ -112,7 +122,6 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 
 	for rows.Next() {
 		var category models.Category
-
 		err := rows.Scan(
 			&category.ID,
 			&category.Name,
@@ -122,7 +131,7 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 
 		if err != nil {
 			return nil, errx.NewInternal().WithDescriptionAndCause(
-				"failed to scan category",
+				ErrFailedToScanCategory,
 				err,
 			)
 		}
@@ -132,7 +141,7 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 
 	if err := rows.Err(); err != nil {
 		return nil, errx.NewInternal().WithDescriptionAndCause(
-			"rows error",
+			ErrRowsError,
 			err,
 		)
 	}
@@ -140,17 +149,18 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 	return categories, nil
 }
 
-func (s *Storage) DeleteCategory(ctx context.Context, id int) error {
+func (s *Storage) DeleteCategory(ctx context.Context, id string) error {
 	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM categories WHERE id = $1", id)
+
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
-			"category deletion failed",
+			ErrCategoryDeletionFailed,
 			err,
 		)
 	}
 
 	if result.RowsAffected() == 0 {
-		return errx.NewNotFound().WithDescription("category not found")
+		return errx.NewNotFound().WithDescription(ErrCategoryNotFound)
 	}
 
 	return nil

@@ -17,7 +17,9 @@ type Service interface {
 	ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
 	DeleteProduct(ctx context.Context, id string) error
 
+	CreateCategory(ctx context.Context, input dto.CreateCategoryRequest) error
 	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) (dto.ListCategoryResponse, error)
+	DeleteCategory(ctx context.Context, id string) error
 
 	CreateOrder(ctx context.Context, order dto.CreateOrderRequest) error
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.ListOrdersResponse, error)

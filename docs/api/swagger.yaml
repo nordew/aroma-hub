@@ -1,5 +1,12 @@
 basePath: /api/v1
 definitions:
+  aroma-hub_internal_application_dto.CreateCategoryRequest:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
   aroma-hub_internal_application_dto.CreateOrderRequest:
     properties:
       address:
@@ -311,6 +318,70 @@ paths:
           schema:
             $ref: '#/definitions/errx.Error'
       summary: List categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: Create a new category
+      parameters:
+      - description: Category information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.CreateCategoryRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created category
+          schema:
+            $ref: '#/definitions/aroma-hub_internal_application_dto.CreateCategoryRequest'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "409":
+          description: Category already exists
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Create category
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a category by ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No content
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Delete category
       tags:
       - categories
   /orders:

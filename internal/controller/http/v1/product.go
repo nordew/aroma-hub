@@ -75,7 +75,7 @@ func (h *Handler) createProduct(c *fiber.Ctx) error {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusCreated, nil)
+	return writeResponse(c, fiber.StatusCreated, input)
 }
 
 // @Summary Delete product
@@ -102,5 +102,5 @@ func (h *Handler) deleteProduct(c *fiber.Ctx) error {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusNoContent, nil)
+	return writeResponse(c, fiber.StatusNoContent, id)
 }

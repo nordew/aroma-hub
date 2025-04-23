@@ -4,8 +4,6 @@ definitions:
     properties:
       address:
         type: string
-      amountToPay:
-        type: number
       contactType:
         allOf:
         - $ref: '#/definitions/aroma-hub_internal_models.ContactType'
@@ -22,17 +20,21 @@ definitions:
         - сash_on_delivery
       phoneNumber:
         type: string
+      productItems:
+        items:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.ProductOrderItem'
+        type: array
       promoCode:
         type: string
       userId:
         type: string
     required:
     - address
-    - amountToPay
     - contactType
     - fullName
     - paymentMethod
     - phoneNumber
+    - productItems
     - userId
     type: object
   aroma-hub_internal_application_dto.CreateProductRequest:
@@ -52,7 +54,7 @@ definitions:
       name:
         type: string
       price:
-        type: integer
+        type: number
       stockAmount:
         type: integer
     type: object
@@ -82,6 +84,30 @@ definitions:
         type: array
       total:
         type: integer
+    type: object
+  aroma-hub_internal_application_dto.ProductOrderItem:
+    properties:
+      id:
+        type: string
+      quantity:
+        type: integer
+    type: object
+  aroma-hub_internal_application_dto.UpdateOrderRequest:
+    properties:
+      address:
+        type: string
+      fullName:
+        type: string
+      id:
+        type: string
+      paymentMethod:
+        $ref: '#/definitions/aroma-hub_internal_models.PaymentMethod'
+      phoneNumber:
+        type: string
+      status:
+        $ref: '#/definitions/aroma-hub_internal_models.OrderStatus'
+    required:
+    - id
     type: object
   aroma-hub_internal_models.Category:
     properties:
@@ -120,6 +146,10 @@ definitions:
         $ref: '#/definitions/aroma-hub_internal_models.PaymentMethod'
       phoneNumber:
         type: string
+      products:
+        items:
+          $ref: '#/definitions/aroma-hub_internal_models.Product'
+        type: array
       promoCode:
         type: string
       status:
@@ -134,11 +164,13 @@ definitions:
     - pending
     - processing
     - completed
+    - cancelled
     type: string
     x-enum-varnames:
     - OrderStatusPending
     - OrderStatusProcessing
     - OrderStatusCompleted
+    - OrderStatusCancelled
   aroma-hub_internal_models.PaymentMethod:
     enum:
     - IBAN
@@ -168,7 +200,7 @@ definitions:
       name:
         type: string
       price:
-        type: integer
+        type: number
       stockAmount:
         type: integer
       updatedAt:
@@ -401,6 +433,73 @@ paths:
           schema:
             $ref: '#/definitions/errx.Error'
       summary: Delete order
+      tags:
+      - orders
+    put:
+      consumes:
+      - application/json
+      description: Update an existing order
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Order information
+        in: body
+        name: order
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.UpdateOrderRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Updated
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Update order
+      tags:
+      - orders
+  /orders/{id}/cancel:
+    put:
+      consumes:
+      - application/json
+      description: Cancel an order by ID
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Order cancelled
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Order not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Cancel order
       tags:
       - orders
   /products:

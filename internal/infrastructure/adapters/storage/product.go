@@ -6,6 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
@@ -191,6 +192,72 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 	}
 
 	return products, nil
+}
+
+func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error {
+	ids := append(make([]string, 0), input.ID)
+	existingProducts, _, err := s.ListProducts(ctx, dto.ListProductFilter{IDs: ids})
+	if err != nil {
+		return errx.NewInternal().WithDescriptionAndCause("failed to check existing product", err)
+	}
+	existingProduct := existingProducts[0]
+
+	var categoryID string
+	if input.CategoryName != "" {
+		categories, _, err := s.ListCategories(ctx, dto.ListCategoryFilter{
+			Name: input.CategoryName,
+		})
+		if err != nil {
+			return errx.NewBadRequest().WithDescriptionAndCause("invalid category", err)
+		}
+
+		categoryID = categories[0].ID
+	} else {
+		categoryID = existingProduct.CategoryID
+	}
+
+	query := s.Builder().Update("products").
+		Set("updated_at", squirrel.Expr("NOW()")).
+		Where(squirrel.Eq{"id": input.ID})
+
+	if input.Brand != "" && input.Brand != existingProduct.Brand {
+		query = query.Set("brand", input.Brand)
+	}
+	if input.Name != "" && input.Name != existingProduct.Name {
+		query = query.Set("name", input.Name)
+	}
+	if input.ImageURL != "" && input.ImageURL != existingProduct.ImageURL {
+		query = query.Set("image_url", input.ImageURL)
+	}
+	if input.Description != "" && input.Description != existingProduct.Description {
+		query = query.Set("description", input.Description)
+	}
+	if input.Composition != "" && input.Composition != existingProduct.Composition {
+		query = query.Set("composition", input.Composition)
+	}
+	if input.Characteristics != "" && input.Characteristics != existingProduct.Characteristics {
+		query = query.Set("characteristics", input.Characteristics)
+	}
+	if input.Price > 0 {
+		reqPriceDecimal := decimal.NewFromFloat(input.Price)
+
+		if !reqPriceDecimal.Equal(existingProduct.Price) {
+			query = query.Set("price", reqPriceDecimal)
+		}
+	}
+	if input.StockAmount != existingProduct.StockAmount {
+		query = query.Set("stock_amount", input.StockAmount)
+	}
+	if categoryID != "" && categoryID != existingProduct.CategoryID {
+		query = query.Set("category_id", categoryID)
+	}
+
+	_, err = s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)
+	if err != nil {
+		return errx.NewInternal().WithDescriptionAndCause("product update failed", err)
+	}
+
+	return nil
 }
 
 func (s *Storage) DeleteProduct(ctx context.Context, id string) error {

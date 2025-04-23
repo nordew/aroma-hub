@@ -18,7 +18,16 @@ type CreateOrderRequest struct {
 	PaymentMethod models.PaymentMethod `json:"paymentMethod" validate:"required,oneof=IBAN сash_on_delivery"`
 	PromoCode     string               `json:"promoCode"`
 	ContactType   models.ContactType   `json:"contactType" validate:"required,oneof=telegram phone"`
-	ProductItems  []ProductOrderItem   `json:"items" validate:"required"`
+	ProductItems  []ProductOrderItem   `json:"productItems" validate:"required"`
+}
+
+type UpdateOrderRequest struct {
+	ID            string               `json:"id" validate:"required"`
+	FullName      string               `json:"fullName,omitempty"`
+	PhoneNumber   string               `json:"phoneNumber,omitempty"`
+	Address       string               `json:"address,omitempty"`
+	Status        models.OrderStatus   `json:"status,omitempty"`
+	PaymentMethod models.PaymentMethod `json:"paymentMethod,omitempty"`
 }
 
 type ListOrdersResponse struct {
@@ -30,7 +39,7 @@ type ListOrderFilter struct {
 	Limit uint `json:"limit"`
 	Page  uint `json:"page"`
 
-	IDs           string               `json:"id"`
+	IDs           []string             `json:"id"`
 	UserID        string               `json:"userId"`
 	PaymentMethod models.PaymentMethod `json:"paymentMethod"`
 	ContactType   models.ContactType   `json:"contactType"`

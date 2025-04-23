@@ -218,6 +218,60 @@ const docTemplate = `{
             }
         },
         "/orders/{id}": {
+            "put": {
+                "description": "Update an existing order",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Update order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Order information",
+                        "name": "order",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.UpdateOrderRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Updated"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Delete an order by ID",
                 "consumes": [
@@ -242,6 +296,53 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Order not found",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}/cancel": {
+            "put": {
+                "description": "Cancel an order by ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "orders"
+                ],
+                "summary": "Cancel order",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Order cancelled"
                     },
                     "400": {
                         "description": "Bad request",
@@ -632,19 +733,16 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "address",
-                "amountToPay",
                 "contactType",
                 "fullName",
                 "paymentMethod",
                 "phoneNumber",
+                "productItems",
                 "userId"
             ],
             "properties": {
                 "address": {
                     "type": "string"
-                },
-                "amountToPay": {
-                    "type": "number"
                 },
                 "contactType": {
                     "enum": [
@@ -673,6 +771,12 @@ const docTemplate = `{
                 },
                 "phoneNumber": {
                     "type": "string"
+                },
+                "productItems": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/aroma-hub_internal_application_dto.ProductOrderItem"
+                    }
                 },
                 "promoCode": {
                     "type": "string"
@@ -707,7 +811,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "price": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "stockAmount": {
                     "type": "integer"
@@ -753,6 +857,43 @@ const docTemplate = `{
                 },
                 "total": {
                     "type": "integer"
+                }
+            }
+        },
+        "aroma-hub_internal_application_dto.ProductOrderItem": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                }
+            }
+        },
+        "aroma-hub_internal_application_dto.UpdateOrderRequest": {
+            "type": "object",
+            "required": [
+                "id"
+            ],
+            "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "paymentMethod": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.PaymentMethod"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.OrderStatus"
                 }
             }
         },
@@ -811,6 +952,12 @@ const docTemplate = `{
                 "phoneNumber": {
                     "type": "string"
                 },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/aroma-hub_internal_models.Product"
+                    }
+                },
                 "promoCode": {
                     "type": "string"
                 },
@@ -830,12 +977,14 @@ const docTemplate = `{
             "enum": [
                 "pending",
                 "processing",
-                "completed"
+                "completed",
+                "cancelled"
             ],
             "x-enum-varnames": [
                 "OrderStatusPending",
                 "OrderStatusProcessing",
-                "OrderStatusCompleted"
+                "OrderStatusCompleted",
+                "OrderStatusCancelled"
             ]
         },
         "aroma-hub_internal_models.PaymentMethod": {
@@ -880,7 +1029,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "price": {
-                    "type": "integer"
+                    "type": "number"
                 },
                 "stockAmount": {
                     "type": "integer"

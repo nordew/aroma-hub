@@ -5,11 +5,11 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
 	"github.com/nordew/go-errx"
-	"github.com/shopspring/decimal"
 )
 
 func (s *Storage) CreateOrder(ctx context.Context, order models.Order) (models.Order, error) {
@@ -220,70 +220,81 @@ func (s *Storage) scanOrders(rows pgx.Rows) ([]models.Order, error) {
 	return orders, nil
 }
 
-func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error {
-	ids := append(make([]string, 0), input.ID)
-	existingProducts, _, err := s.ListProducts(ctx, dto.ListProductFilter{IDs: ids})
+func (s *Storage) UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest) error {
+	exists, err := s.orderExists(ctx, input.ID)
 	if err != nil {
-		return errx.NewInternal().WithDescriptionAndCause("failed to check existing product", err)
+		return err
 	}
-	existingProduct := existingProducts[0]
-
-	var categoryID string
-	if input.CategoryName != "" {
-		categories, _, err := s.ListCategories(ctx, dto.ListCategoryFilter{
-			Name: input.CategoryName,
-		})
-		if err != nil {
-			return errx.NewBadRequest().WithDescriptionAndCause("invalid category", err)
-		}
-
-		categoryID = categories[0].ID
-	} else {
-		categoryID = existingProduct.CategoryID
+	if !exists {
+		return errx.NewNotFound().WithDescription("order not found")
 	}
 
-	query := s.Builder().Update("products").
-		Set("updated_at", squirrel.Expr("NOW()")).
-		Where(squirrel.Eq{"id": input.ID})
+	var (
+		setClauses []string
+		args       []any
+		paramCount = 1
+	)
 
-	if input.Brand != "" && input.Brand != existingProduct.Brand {
-		query = query.Set("brand", input.Brand)
-	}
-	if input.Name != "" && input.Name != existingProduct.Name {
-		query = query.Set("name", input.Name)
-	}
-	if input.ImageURL != "" && input.ImageURL != existingProduct.ImageURL {
-		query = query.Set("image_url", input.ImageURL)
-	}
-	if input.Description != "" && input.Description != existingProduct.Description {
-		query = query.Set("description", input.Description)
-	}
-	if input.Composition != "" && input.Composition != existingProduct.Composition {
-		query = query.Set("composition", input.Composition)
-	}
-	if input.Characteristics != "" && input.Characteristics != existingProduct.Characteristics {
-		query = query.Set("characteristics", input.Characteristics)
-	}
-	if input.Price > 0 {
-		reqPriceDecimal := decimal.NewFromFloat(input.Price)
-
-		if !reqPriceDecimal.Equal(existingProduct.Price) {
-			query = query.Set("price", reqPriceDecimal)
-		}
-	}
-	if input.StockAmount != existingProduct.StockAmount {
-		query = query.Set("stock_amount", input.StockAmount)
-	}
-	if categoryID != "" && categoryID != existingProduct.CategoryID {
-		query = query.Set("category_id", categoryID)
+	if input.FullName != "" {
+		setClauses = append(setClauses, fmt.Sprintf("full_name = $%d", paramCount))
+		args = append(args, input.FullName)
+		paramCount++
 	}
 
-	_, err = s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)
+	if input.PhoneNumber != "" {
+		setClauses = append(setClauses, fmt.Sprintf("phone_number = $%d", paramCount))
+		args = append(args, input.PhoneNumber)
+		paramCount++
+	}
+
+	if input.Address != "" {
+		setClauses = append(setClauses, fmt.Sprintf("address = $%d", paramCount))
+		args = append(args, input.Address)
+		paramCount++
+	}
+
+	if input.Status != "" {
+		setClauses = append(setClauses, fmt.Sprintf("status = $%d", paramCount))
+		args = append(args, input.Status)
+		paramCount++
+	}
+
+	if input.PaymentMethod != "" {
+		setClauses = append(setClauses, fmt.Sprintf("payment_method = $%d", paramCount))
+		args = append(args, input.PaymentMethod)
+		paramCount++
+	}
+
+	if len(setClauses) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE orders
+		SET %s
+		WHERE id = $%d
+	`, strings.Join(setClauses, ", "), paramCount)
+
+	args = append(args, input.ID)
+
+	_, err = s.GetQuerier().Exec(ctx, query, args...)
 	if err != nil {
-		return errx.NewInternal().WithDescriptionAndCause("product update failed", err)
+		return errx.NewInternal().WithDescriptionAndCause("order update failed", err)
 	}
 
 	return nil
+}
+
+func (s *Storage) orderExists(ctx context.Context, orderID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM orders WHERE id = $1)`
+
+	var exists bool
+	err := s.GetQuerier().QueryRow(ctx, query, orderID).Scan(&exists)
+	if err != nil {
+		return false, errx.NewInternal().WithDescriptionAndCause("failed to check order existence", err)
+	}
+
+	return exists, nil
 }
 
 func (s *Storage) DeleteOrder(ctx context.Context, id string) error {

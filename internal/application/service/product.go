@@ -5,9 +5,8 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 
-	"log"
-
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 )
 
 func (s *Service) CreateProduct(ctx context.Context, input dto.CreateProductRequest) error {
@@ -28,14 +27,12 @@ func (s *Service) CreateProduct(ctx context.Context, input dto.CreateProductRequ
 		input.Description,
 		input.Composition,
 		input.Characteristics,
-		input.Price,
+		decimal.NewFromFloat(input.Price),
 		input.StockAmount,
 	)
 	if err != nil {
 		return err
 	}
-
-	log.Print("Creating product", "product", product)
 
 	return s.storage.CreateProduct(ctx, product)
 }

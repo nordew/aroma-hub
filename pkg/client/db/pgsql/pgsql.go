@@ -4,10 +4,11 @@ import (
 	"aroma-hub/internal/config"
 	"context"
 	"database/sql"
+	"log"
+
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose"
-	"log"
 )
 
 func MustConnect(ctx context.Context, cfg config.Postgres) *pgxpool.Pool {
@@ -16,23 +17,17 @@ func MustConnect(ctx context.Context, cfg config.Postgres) *pgxpool.Pool {
 		log.Fatalf("failed to parse dsn: %v", err)
 	}
 
-	queryLogger := NewQueryLogger()
-	poolCfg.ConnConfig.Tracer = queryLogger
-
-	poolCfg.ConnConfig.RuntimeParams["application_name"] = "aroma-hub"
+	poolCfg.ConnConfig.Tracer = &pgxTracer{}
 
 	pool, err := pgxpool.NewWithConfig(ctx, poolCfg)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
-
 	if err := pool.Ping(ctx); err != nil {
 		pool.Close()
 		log.Fatalf("failed to ping database: %v", err)
 	}
-
 	log.Printf("Connected to PostgreSQL database: %s", hidePassword(cfg.DSN))
-
 	return pool
 }
 

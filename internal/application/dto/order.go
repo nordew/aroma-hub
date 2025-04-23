@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type ProductOrderItem struct {
+	ID       string `json:"id"`
+	Quantity uint   `json:"quantity"`
+}
+
 type CreateOrderRequest struct {
 	UserID        string               `json:"userId" validate:"required"`
 	FullName      string               `json:"fullName" validate:"required"`
@@ -13,7 +18,16 @@ type CreateOrderRequest struct {
 	PaymentMethod models.PaymentMethod `json:"paymentMethod" validate:"required,oneof=IBAN сash_on_delivery"`
 	PromoCode     string               `json:"promoCode"`
 	ContactType   models.ContactType   `json:"contactType" validate:"required,oneof=telegram phone"`
-	AmountToPay   float64              `json:"amountToPay" validate:"required,gt=0"`
+	ProductItems  []ProductOrderItem   `json:"productItems" validate:"required"`
+}
+
+type UpdateOrderRequest struct {
+	ID            string               `json:"id" validate:"required"`
+	FullName      string               `json:"fullName,omitempty"`
+	PhoneNumber   string               `json:"phoneNumber,omitempty"`
+	Address       string               `json:"address,omitempty"`
+	Status        models.OrderStatus   `json:"status,omitempty"`
+	PaymentMethod models.PaymentMethod `json:"paymentMethod,omitempty"`
 }
 
 type ListOrdersResponse struct {
@@ -22,13 +36,14 @@ type ListOrdersResponse struct {
 }
 
 type ListOrderFilter struct {
-	ID            string               `json:"id"`
+	Limit uint `json:"limit"`
+	Page  uint `json:"page"`
+
+	IDs           []string             `json:"id"`
 	UserID        string               `json:"userId"`
 	PaymentMethod models.PaymentMethod `json:"paymentMethod"`
 	ContactType   models.ContactType   `json:"contactType"`
 	FromDate      *time.Time           `json:"fromDate"`
 	ToDate        *time.Time           `json:"toDate"`
 	Status        models.OrderStatus   `json:"status"`
-	Limit         uint                 `json:"limit"`
-	Page          uint                 `json:"page"`
 }

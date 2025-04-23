@@ -5,8 +5,8 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"strings"
 
 	"github.com/Masterminds/squirrel"
@@ -15,7 +15,7 @@ import (
 )
 
 func (s *Storage) CreateProduct(ctx context.Context, product models.Product) error {
-	_, err := s.pool.Exec(
+	_, err := s.GetQuerier().Exec(
 		ctx,
 		`
 		INSERT INTO products (id, category_id, brand, name, image_url, description, composition, characteristics, price, stock_amount)
@@ -66,13 +66,9 @@ func (s *Storage) ListProducts(ctx context.Context, filter dto.ListProductFilter
 
 	baseQuery = baseQuery.Limit(uint64(limit)).Offset(uint64(offset))
 
-	countSQL, countArgs, err := countQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to build count query", err)
-	}
-
 	var totalCount int64
-	err = s.pool.QueryRow(ctx, countSQL, countArgs...).Scan(&totalCount)
+	countRow := s.squirrelHelper.QueryRow(ctx, s.GetQuerier(), countQuery)
+	err := countRow.Scan(&totalCount)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to get total count", err)
 	}
@@ -80,12 +76,7 @@ func (s *Storage) ListProducts(ctx context.Context, filter dto.ListProductFilter
 		return []models.Product{}, 0, errx.NewNotFound().WithDescription("no products found")
 	}
 
-	sql, args, err := baseQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to build query", err)
-	}
-
-	rows, err := s.pool.Query(ctx, sql, args...)
+	rows, err := s.squirrelHelper.Query(ctx, s.GetQuerier(), baseQuery)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause("failed to execute query", err)
 	}
@@ -100,7 +91,7 @@ func (s *Storage) ListProducts(ctx context.Context, filter dto.ListProductFilter
 }
 
 func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
-	baseQuery := s.sb.Select(
+	baseQuery := s.Builder().Select(
 		"p.id",
 		"p.category_id",
 		"c.name AS category_name",
@@ -118,11 +109,12 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		From("products p").
 		LeftJoin("categories c ON p.category_id = c.id")
 
-	countQuery := s.sb.Select("COUNT(*)").From("products p")
+	countQuery := s.Builder().Select("COUNT(*)").From("products p").
+		LeftJoin("categories c ON p.category_id = c.id")
 
-	if filter.ID != "" {
-		baseQuery = baseQuery.Where(squirrel.Eq{"p.id": filter.ID})
-		countQuery = countQuery.Where(squirrel.Eq{"p.id": filter.ID})
+	if len(filter.IDs) > 0 {
+		baseQuery = baseQuery.Where(squirrel.Eq{"p.id": filter.IDs})
+		countQuery = countQuery.Where(squirrel.Eq{"p.id": filter.IDs})
 	}
 	if filter.CategoryID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.category_id": filter.CategoryID})
@@ -202,14 +194,80 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 	return products, nil
 }
 
-func (s *Storage) DeleteProduct(ctx context.Context, id string) error {
-	_, err := s.pool.Exec(ctx, "DELETE FROM products WHERE id = $1", id)
+func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error {
+	ids := append(make([]string, 0), input.ID)
+	existingProducts, _, err := s.ListProducts(ctx, dto.ListProductFilter{IDs: ids})
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return errx.NewNotFound().WithDescription("product not found")
+		return errx.NewInternal().WithDescriptionAndCause("failed to check existing product", err)
+	}
+	existingProduct := existingProducts[0]
+
+	var categoryID string
+	if input.CategoryName != "" {
+		categories, _, err := s.ListCategories(ctx, dto.ListCategoryFilter{
+			Name: input.CategoryName,
+		})
+		if err != nil {
+			return errx.NewBadRequest().WithDescriptionAndCause("invalid category", err)
 		}
 
+		categoryID = categories[0].ID
+	} else {
+		categoryID = existingProduct.CategoryID
+	}
+
+	query := s.Builder().Update("products").
+		Set("updated_at", squirrel.Expr("NOW()")).
+		Where(squirrel.Eq{"id": input.ID})
+
+	if input.Brand != "" && input.Brand != existingProduct.Brand {
+		query = query.Set("brand", input.Brand)
+	}
+	if input.Name != "" && input.Name != existingProduct.Name {
+		query = query.Set("name", input.Name)
+	}
+	if input.ImageURL != "" && input.ImageURL != existingProduct.ImageURL {
+		query = query.Set("image_url", input.ImageURL)
+	}
+	if input.Description != "" && input.Description != existingProduct.Description {
+		query = query.Set("description", input.Description)
+	}
+	if input.Composition != "" && input.Composition != existingProduct.Composition {
+		query = query.Set("composition", input.Composition)
+	}
+	if input.Characteristics != "" && input.Characteristics != existingProduct.Characteristics {
+		query = query.Set("characteristics", input.Characteristics)
+	}
+	if input.Price > 0 {
+		reqPriceDecimal := decimal.NewFromFloat(input.Price)
+
+		if !reqPriceDecimal.Equal(existingProduct.Price) {
+			query = query.Set("price", reqPriceDecimal)
+		}
+	}
+	if input.StockAmount != existingProduct.StockAmount {
+		query = query.Set("stock_amount", input.StockAmount)
+	}
+	if categoryID != "" && categoryID != existingProduct.CategoryID {
+		query = query.Set("category_id", categoryID)
+	}
+
+	_, err = s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)
+	if err != nil {
+		return errx.NewInternal().WithDescriptionAndCause("product update failed", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DeleteProduct(ctx context.Context, id string) error {
+	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM products WHERE id = $1", id)
+	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause("product deletion failed", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return errx.NewNotFound().WithDescription("product not found")
 	}
 
 	return nil

@@ -56,11 +56,29 @@ definitions:
       stockAmount:
         type: integer
     type: object
+  aroma-hub_internal_application_dto.CreatePromocodeRequest:
+    properties:
+      code:
+        type: string
+      discount:
+        type: integer
+      expiresAt:
+        type: string
+    type: object
   aroma-hub_internal_application_dto.ListOrdersResponse:
     properties:
       orders:
         items:
           $ref: '#/definitions/aroma-hub_internal_models.Order'
+        type: array
+      total:
+        type: integer
+    type: object
+  aroma-hub_internal_application_dto.ListPromocodesResponse:
+    properties:
+      promocodes:
+        items:
+          $ref: '#/definitions/aroma-hub_internal_models.Promocode'
         type: array
       total:
         type: integer
@@ -153,6 +171,21 @@ definitions:
         type: integer
       stockAmount:
         type: integer
+      updatedAt:
+        type: string
+    type: object
+  aroma-hub_internal_models.Promocode:
+    properties:
+      code:
+        type: string
+      createdAt:
+        type: string
+      discount:
+        type: integer
+      expiresAt:
+        type: string
+      id:
+        type: string
       updatedAt:
         type: string
     type: object
@@ -490,4 +523,123 @@ paths:
       summary: Delete product
       tags:
       - products
+  /promocodes:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of promocodes with optional filtering
+      parameters:
+      - description: Promocode ID
+        in: query
+        name: id
+        type: string
+      - description: Promocode code
+        in: query
+        name: code
+        type: string
+      - description: Minimum discount percentage
+        in: query
+        name: discountFrom
+        type: integer
+      - description: Maximum discount percentage
+        in: query
+        name: discountTo
+        type: integer
+      - description: Filter for active promocodes (not expired)
+        in: query
+        name: active
+        type: boolean
+      - description: 'Number of items per page (default: 10, max: 100)'
+        in: query
+        name: limit
+        type: integer
+      - description: 'Page number (default: 1)'
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of promocodes
+          schema:
+            $ref: '#/definitions/aroma-hub_internal_application_dto.ListPromocodesResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: No promocodes found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: List promocodes
+      tags:
+      - promocodes
+    post:
+      consumes:
+      - application/json
+      description: Create a new promocode with discount
+      parameters:
+      - description: Promocode information
+        in: body
+        name: promocode
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.CreatePromocodeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created successfully
+        "400":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "409":
+          description: Promocode already exists
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Create promocode
+      tags:
+      - promocodes
+  /promocodes/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a promocode by its ID
+      parameters:
+      - description: Promocode ID
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Promocode not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Delete promocode
+      tags:
+      - promocodes
 swagger: "2.0"

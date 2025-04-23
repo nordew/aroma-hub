@@ -445,6 +445,186 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/promocodes": {
+            "get": {
+                "description": "Get a list of promocodes with optional filtering",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promocodes"
+                ],
+                "summary": "List promocodes",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Promocode ID",
+                        "name": "id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Promocode code",
+                        "name": "code",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Minimum discount percentage",
+                        "name": "discountFrom",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Maximum discount percentage",
+                        "name": "discountTo",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter for active promocodes (not expired)",
+                        "name": "active",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Number of items per page (default: 10, max: 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (default: 1)",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of promocodes",
+                        "schema": {
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.ListPromocodesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "No promocodes found",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Create a new promocode with discount",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promocodes"
+                ],
+                "summary": "Create promocode",
+                "parameters": [
+                    {
+                        "description": "Promocode information",
+                        "name": "promocode",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.CreatePromocodeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created successfully"
+                    },
+                    "400": {
+                        "description": "Validation error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "409": {
+                        "description": "Promocode already exists",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/promocodes/{id}": {
+            "delete": {
+                "description": "Delete a promocode by its ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "promocodes"
+                ],
+                "summary": "Delete promocode",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Promocode ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "404": {
+                        "description": "Promocode not found",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -534,6 +714,20 @@ const docTemplate = `{
                 }
             }
         },
+        "aroma-hub_internal_application_dto.CreatePromocodeRequest": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "discount": {
+                    "type": "integer"
+                },
+                "expiresAt": {
+                    "type": "string"
+                }
+            }
+        },
         "aroma-hub_internal_application_dto.ListOrdersResponse": {
             "type": "object",
             "properties": {
@@ -541,6 +735,20 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/aroma-hub_internal_models.Order"
+                    }
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "aroma-hub_internal_application_dto.ListPromocodesResponse": {
+            "type": "object",
+            "properties": {
+                "promocodes": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/aroma-hub_internal_models.Promocode"
                     }
                 },
                 "total": {
@@ -676,6 +884,29 @@ const docTemplate = `{
                 },
                 "stockAmount": {
                     "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "aroma-hub_internal_models.Promocode": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "discount": {
+                    "type": "integer"
+                },
+                "expiresAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
                 },
                 "updatedAt": {
                     "type": "string"

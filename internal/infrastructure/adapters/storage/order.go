@@ -5,6 +5,7 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -46,7 +47,7 @@ func (s *Storage) CreateOrder(ctx context.Context, order models.Order) (models.O
 		updated_at
 	`
 	var result models.Order
-	err := s.pool.QueryRow(
+	err := s.GetQuerier().QueryRow(
 		ctx, query,
 		order.ID,
 		order.UserID,
@@ -97,16 +98,9 @@ func (s *Storage) ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([
 		Limit(uint64(limit)).
 		Offset(uint64(offset))
 
-	countSQL, countArgs, err := countQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to build count query",
-			err,
-		)
-	}
-
 	var totalCount int64
-	err = s.pool.QueryRow(ctx, countSQL, countArgs...).Scan(&totalCount)
+	countRow := s.squirrelHelper.QueryRow(ctx, s.GetQuerier(), countQuery)
+	err := countRow.Scan(&totalCount)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
 			"failed to count orders",
@@ -118,15 +112,7 @@ func (s *Storage) ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([
 		return []models.Order{}, 0, errx.NewNotFound().WithDescription("no orders found")
 	}
 
-	sql, args, err := baseQuery.ToSql()
-	if err != nil {
-		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
-			"failed to build query",
-			err,
-		)
-	}
-
-	rows, err := s.pool.Query(ctx, sql, args...)
+	rows, err := s.squirrelHelper.Query(ctx, s.GetQuerier(), baseQuery)
 	if err != nil {
 		return nil, 0, errx.NewInternal().WithDescriptionAndCause(
 			"failed to query orders",
@@ -144,7 +130,7 @@ func (s *Storage) ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([
 }
 
 func (s *Storage) buildSearchOrderQuery(filter dto.ListOrderFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
-	baseQuery := s.sb.Select(
+	baseQuery := s.Builder().Select(
 		"id",
 		"user_id",
 		"full_name",
@@ -159,11 +145,11 @@ func (s *Storage) buildSearchOrderQuery(filter dto.ListOrderFilter) (squirrel.Se
 		"updated_at",
 	).From("orders")
 
-	countQuery := s.sb.Select("COUNT(*)").From("orders")
+	countQuery := s.Builder().Select("COUNT(*)").From("orders")
 
-	if filter.ID != "" {
-		baseQuery = baseQuery.Where(squirrel.Eq{"id": filter.ID})
-		countQuery = countQuery.Where(squirrel.Eq{"id": filter.ID})
+	if len(filter.IDs) > 0 {
+		baseQuery = baseQuery.Where(squirrel.Eq{"id": filter.IDs})
+		countQuery = countQuery.Where(squirrel.Eq{"id": filter.IDs})
 	}
 	if filter.UserID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"user_id": filter.UserID})
@@ -234,8 +220,85 @@ func (s *Storage) scanOrders(rows pgx.Rows) ([]models.Order, error) {
 	return orders, nil
 }
 
+func (s *Storage) UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest) error {
+	exists, err := s.orderExists(ctx, input.ID)
+	if err != nil {
+		return err
+	}
+	if !exists {
+		return errx.NewNotFound().WithDescription("order not found")
+	}
+
+	var (
+		setClauses []string
+		args       []any
+		paramCount = 1
+	)
+
+	if input.FullName != "" {
+		setClauses = append(setClauses, fmt.Sprintf("full_name = $%d", paramCount))
+		args = append(args, input.FullName)
+		paramCount++
+	}
+
+	if input.PhoneNumber != "" {
+		setClauses = append(setClauses, fmt.Sprintf("phone_number = $%d", paramCount))
+		args = append(args, input.PhoneNumber)
+		paramCount++
+	}
+
+	if input.Address != "" {
+		setClauses = append(setClauses, fmt.Sprintf("address = $%d", paramCount))
+		args = append(args, input.Address)
+		paramCount++
+	}
+
+	if input.Status != "" {
+		setClauses = append(setClauses, fmt.Sprintf("status = $%d", paramCount))
+		args = append(args, input.Status)
+		paramCount++
+	}
+
+	if input.PaymentMethod != "" {
+		setClauses = append(setClauses, fmt.Sprintf("payment_method = $%d", paramCount))
+		args = append(args, input.PaymentMethod)
+		paramCount++
+	}
+
+	if len(setClauses) == 0 {
+		return nil
+	}
+
+	query := fmt.Sprintf(`
+		UPDATE orders
+		SET %s
+		WHERE id = $%d
+	`, strings.Join(setClauses, ", "), paramCount)
+
+	args = append(args, input.ID)
+
+	_, err = s.GetQuerier().Exec(ctx, query, args...)
+	if err != nil {
+		return errx.NewInternal().WithDescriptionAndCause("order update failed", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) orderExists(ctx context.Context, orderID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM orders WHERE id = $1)`
+
+	var exists bool
+	err := s.GetQuerier().QueryRow(ctx, query, orderID).Scan(&exists)
+	if err != nil {
+		return false, errx.NewInternal().WithDescriptionAndCause("failed to check order existence", err)
+	}
+
+	return exists, nil
+}
+
 func (s *Storage) DeleteOrder(ctx context.Context, id string) error {
-	result, err := s.pool.Exec(ctx, "DELETE FROM orders WHERE id = $1", id)
+	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM orders WHERE id = $1", id)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
 			"order deletion failed",

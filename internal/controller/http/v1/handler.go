@@ -21,6 +21,8 @@ type Service interface {
 
 	CreateOrder(ctx context.Context, order dto.CreateOrderRequest) error
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.ListOrdersResponse, error)
+	UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest) error
+	CancelOrder(ctx context.Context, id string) error
 	DeleteOrder(ctx context.Context, id string) error
 
 	CreatePromocode(ctx context.Context, input dto.CreatePromocodeRequest) error

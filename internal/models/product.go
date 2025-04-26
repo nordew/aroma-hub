@@ -28,12 +28,13 @@ type Product struct {
 	Characteristics string          `json:"characteristics"`
 	Price           decimal.Decimal `json:"price"`
 	StockAmount     uint            `json:"stockAmount"`
+	Visible         bool            `json:"visible"`
 	CreatedAt       time.Time       `json:"createdAt"`
 	UpdatedAt       time.Time       `json:"updatedAt"`
 }
 
 func NewProduct(
-	id, categoryID, brand, name, imageURL, description, composition, characteristics string,
+	id, categoryID, brand, name, description, composition, characteristics string,
 	price decimal.Decimal, stockAmount uint,
 ) (Product, error) {
 	p := Product{
@@ -41,12 +42,12 @@ func NewProduct(
 		CategoryID:      categoryID,
 		Brand:           brand,
 		Name:            name,
-		ImageURL:        imageURL,
 		Description:     description,
 		Composition:     composition,
 		Characteristics: characteristics,
 		Price:           price,
 		StockAmount:     stockAmount,
+		Visible:         false,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}

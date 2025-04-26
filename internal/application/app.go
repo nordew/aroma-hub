@@ -5,9 +5,13 @@ import (
 	"aroma-hub/internal/application/service"
 	"aroma-hub/internal/config"
 	v1 "aroma-hub/internal/controller/http/v1"
+	"aroma-hub/internal/infrastructure/adapters/messaging/telegram"
 	"aroma-hub/internal/infrastructure/adapters/storage"
 	"aroma-hub/internal/infrastructure/workers"
+	"aroma-hub/pkg/auth"
+	"aroma-hub/pkg/client/db/minio_s3"
 	"aroma-hub/pkg/client/db/pgsql"
+	"aroma-hub/pkg/otp_generator"
 	"context"
 	"log"
 	"log/slog"
@@ -19,6 +23,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
 	pgxtransactor "github.com/nordew/pgx-transactor"
+
+	stash "github.com/nordew/go-stash"
 )
 
 func MustRun() {
@@ -37,22 +43,54 @@ func MustRun() {
 		pgsql.MustMigrate(ctx, pool, cfg.Postgres)
 	}
 
+	minioCl := minio_s3.MustConnect(cfg.Minio)
+
 	transactor := pgxtransactor.NewTransactor(pool)
 
+	otpGen := otp_generator.NewDefaultGenerator()
+	cache := stash.NewCache()
+
+	tokenCfg := auth.Config{
+		AccessTokenSecret:    cfg.Auth.AuthSecret,
+		AccessTokenDuration:  cfg.Auth.AccessTokenTTL,
+		RefreshTokenSecret:   cfg.Auth.AuthSecret,
+		RefreshTokenDuration: cfg.Auth.RefreshTokenTTL,
+	}
+	tokenService := auth.NewTokenService(tokenCfg)
+
 	storages := storage.NewStorage(pool)
-	services := service.NewService(storages, transactor)
+	services := service.NewService(storages, transactor, cache, tokenService, minioCl)
 
 	promocodeWorker := workers.NewPromocodeWorker(services, logger)
 	promocodeWorker.Start()
+
+	telegramProvider, err := telegram.NewTelegramProvider(cfg.Telegram.Token, services, otpGen, cache)
+	if err != nil {
+		logger.Fatalf("Failed to create Telegram provider: %v", err)
+	}
+
+	telegramProvider.RegisterLoginCommand()
 
 	slogHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	})
 	slogLogger := slog.New(slogHandler)
 
-	handler := v1.NewHandler(services, slogLogger)
+	handler := v1.NewHandler(services, slogLogger, tokenService)
 	router := createRouter(&cfg)
 	setSwagger(router)
+
+	go func() {
+		cacheCfg := stash.CacheWorkerConfig{
+			Cache:    cache,
+			Interval: 1 * time.Minute,
+			StopCh:   make(chan struct{}),
+		}
+
+		stash.StartCacheWorker(ctx, cacheCfg)
+	}()
+
+	telegramProvider.Start()
 
 	serverShutdownDone := make(chan struct{})
 	go func() {
@@ -73,6 +111,7 @@ func MustRun() {
 
 	logger.Println("Stopping worker...")
 	promocodeWorker.Stop()
+	telegramProvider.Stop()
 
 	logger.Println("Stopping HTTP server...")
 	if err := router.ShutdownWithContext(shutdownCtx); err != nil {

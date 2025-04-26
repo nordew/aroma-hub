@@ -6,8 +6,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"github.com/shopspring/decimal"
 	"strings"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -148,6 +149,10 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		baseQuery = baseQuery.Where(squirrel.LtOrEq{"p.stock_amount": filter.StockAmountTo})
 		countQuery = countQuery.Where(squirrel.LtOrEq{"p.stock_amount": filter.StockAmountTo})
 	}
+	if !filter.ShowInvisible {
+		baseQuery = baseQuery.Where(squirrel.Eq{"p.visible": true})
+		countQuery = countQuery.Where(squirrel.Eq{"p.visible": true})
+	}
 
 	return baseQuery, countQuery
 }
@@ -195,13 +200,6 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 }
 
 func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error {
-	ids := append(make([]string, 0), input.ID)
-	existingProducts, _, err := s.ListProducts(ctx, dto.ListProductFilter{IDs: ids})
-	if err != nil {
-		return errx.NewInternal().WithDescriptionAndCause("failed to check existing product", err)
-	}
-	existingProduct := existingProducts[0]
-
 	var categoryID string
 	if input.CategoryName != "" {
 		categories, _, err := s.ListCategories(ctx, dto.ListCategoryFilter{
@@ -212,47 +210,48 @@ func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequ
 		}
 
 		categoryID = categories[0].ID
-	} else {
-		categoryID = existingProduct.CategoryID
 	}
 
 	query := s.Builder().Update("products").
 		Set("updated_at", squirrel.Expr("NOW()")).
 		Where(squirrel.Eq{"id": input.ID})
 
-	if input.Brand != "" && input.Brand != existingProduct.Brand {
+	if input.Brand != "" {
 		query = query.Set("brand", input.Brand)
 	}
-	if input.Name != "" && input.Name != existingProduct.Name {
+	if input.Name != "" {
 		query = query.Set("name", input.Name)
 	}
-	if input.ImageURL != "" && input.ImageURL != existingProduct.ImageURL {
+	if input.ImageURL != "" {
 		query = query.Set("image_url", input.ImageURL)
 	}
-	if input.Description != "" && input.Description != existingProduct.Description {
+	if input.Description != "" {
 		query = query.Set("description", input.Description)
 	}
-	if input.Composition != "" && input.Composition != existingProduct.Composition {
+	if input.Composition != "" {
 		query = query.Set("composition", input.Composition)
 	}
-	if input.Characteristics != "" && input.Characteristics != existingProduct.Characteristics {
+	if input.Characteristics != "" {
 		query = query.Set("characteristics", input.Characteristics)
 	}
 	if input.Price > 0 {
 		reqPriceDecimal := decimal.NewFromFloat(input.Price)
 
-		if !reqPriceDecimal.Equal(existingProduct.Price) {
+		if !reqPriceDecimal.Equal(reqPriceDecimal) {
 			query = query.Set("price", reqPriceDecimal)
 		}
 	}
-	if input.StockAmount != existingProduct.StockAmount {
+	{
 		query = query.Set("stock_amount", input.StockAmount)
 	}
-	if categoryID != "" && categoryID != existingProduct.CategoryID {
+	if categoryID != "" {
 		query = query.Set("category_id", categoryID)
 	}
+	if input.MakeVisible {
+		query = query.Set("visible", true)
+	}
 
-	_, err = s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)
+	_, err := s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause("product update failed", err)
 	}

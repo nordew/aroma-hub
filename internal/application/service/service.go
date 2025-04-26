@@ -3,7 +3,11 @@ package service
 import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/models"
+	"aroma-hub/pkg/auth"
+	"aroma-hub/pkg/client/db/minio_s3"
 	"context"
+
+	stash "github.com/nordew/go-stash"
 
 	pgxtransactor "github.com/nordew/pgx-transactor"
 )
@@ -16,7 +20,9 @@ type Storage interface {
 	UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error
 	DeleteProduct(ctx context.Context, id string) error
 
+	CreateCategory(ctx context.Context, category models.Category) error
 	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) ([]models.Category, int64, error)
+	DeleteCategory(ctx context.Context, id string) error
 
 	CreateOrder(ctx context.Context, order models.Order) (models.Order, error)
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([]models.Order, int64, error)
@@ -29,16 +35,30 @@ type Storage interface {
 	CreatePromocode(ctx context.Context, promocode models.Promocode) error
 	ListPromocodes(ctx context.Context, filter dto.ListPromocodeFilter) ([]models.Promocode, int64, error)
 	DeletePromocode(ctx context.Context, id string) error
+
+	ListAdmins(ctx context.Context, filter dto.ListAdminFilter) ([]models.Admin, error)
 }
 
 type Service struct {
-	storage    Storage
-	transactor *pgxtransactor.Transactor
+	storage      Storage
+	transactor   *pgxtransactor.Transactor
+	cache        stash.Cache
+	tokenService *auth.TokenService
+	minioCl      *minio_s3.Client
 }
 
-func NewService(storage Storage, transactor *pgxtransactor.Transactor) *Service {
+func NewService(
+	storage Storage,
+	transactor *pgxtransactor.Transactor,
+	cache stash.Cache,
+	tokenService *auth.TokenService,
+	minioCl *minio_s3.Client,
+) *Service {
 	return &Service{
-		storage:    storage,
-		transactor: transactor,
+		storage:      storage,
+		transactor:   transactor,
+		cache:        cache,
+		tokenService: tokenService,
+		minioCl:      minioCl,
 	}
 }

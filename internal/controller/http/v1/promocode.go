@@ -10,6 +10,9 @@ import (
 
 func (h *Handler) initPromocodeRoutes(api fiber.Router) {
 	promocodes := api.Group("/promocodes")
+
+	promocodes.Use(h.middleware.Auth())
+
 	promocodes.Post("/", h.createPromocode)
 	promocodes.Get("/", h.listPromocodes)
 	promocodes.Delete("/:id", h.deletePromocode)

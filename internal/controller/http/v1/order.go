@@ -13,11 +13,14 @@ import (
 
 func (h *Handler) initOrderRoutes(api fiber.Router) {
 	orders := api.Group("/orders")
-	orders.Get("/", h.listOrders)
+
 	orders.Post("/", h.createOrder)
+
+	orders.Use(h.middleware.Auth())
+	orders.Get("/", h.listOrders)
+	orders.Put("/:id", h.updateOrder)
 	orders.Delete("/:id", h.deleteOrder)
 	orders.Put("/:id/cancel", h.cancelOrder)
-	orders.Put("/:id", h.updateOrder)
 }
 
 // @Summary List orders
@@ -96,7 +99,7 @@ func (h *Handler) createOrder(c *fiber.Ctx) error {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusCreated, "")
+	return writeResponse(c, fiber.StatusCreated, input)
 }
 
 // @Summary Update order
@@ -131,7 +134,7 @@ func (h *Handler) updateOrder(c *fiber.Ctx) error {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusOK, nil)
+	return writeResponse(c, fiber.StatusOK, input)
 }
 
 // @Summary Cancel order
@@ -158,7 +161,7 @@ func (h *Handler) cancelOrder(c *fiber.Ctx) error {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusOK, nil)
+	return writeResponse(c, fiber.StatusOK, id)
 }
 
 // @Summary Delete order
@@ -185,5 +188,5 @@ func (h *Handler) deleteOrder(c *fiber.Ctx) error {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusNoContent, nil)
+	return writeResponse(c, fiber.StatusNoContent, id)
 }

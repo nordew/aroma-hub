@@ -3,6 +3,7 @@ package v1
 import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/config"
+	"aroma-hub/pkg/auth"
 	"context"
 	"fmt"
 	"log/slog"
@@ -15,9 +16,13 @@ import (
 type Service interface {
 	CreateProduct(ctx context.Context, input dto.CreateProductRequest) error
 	ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
+	UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error
+	SetProductImage(ctx context.Context, productID string, imageBytes []byte) error
 	DeleteProduct(ctx context.Context, id string) error
 
+	CreateCategory(ctx context.Context, input dto.CreateCategoryRequest) error
 	ListCategories(ctx context.Context, filter dto.ListCategoryFilter) (dto.ListCategoryResponse, error)
+	DeleteCategory(ctx context.Context, id string) error
 
 	CreateOrder(ctx context.Context, order dto.CreateOrderRequest) error
 	ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.ListOrdersResponse, error)
@@ -28,6 +33,9 @@ type Service interface {
 	CreatePromocode(ctx context.Context, input dto.CreatePromocodeRequest) error
 	ListPromocodes(ctx context.Context, filter dto.ListPromocodeFilter) (dto.ListPromocodesResponse, error)
 	DeletePromocode(ctx context.Context, id string) error
+
+	AdminLogin(ctx context.Context, input dto.AdminLoginRequest) (dto.AdminLoginResponse, error)
+	AdminRefresh(ctx context.Context, input dto.AdminRefreshTokenRequest) (dto.AdminRefreshTokenResponse, error)
 }
 
 type Handler struct {
@@ -35,15 +43,24 @@ type Handler struct {
 	middleware *Middleware
 }
 
-func NewHandler(service Service, logger *slog.Logger) *Handler {
+func NewHandler(
+	service Service,
+	logger *slog.Logger,
+	tokenService *auth.TokenService,
+) *Handler {
 	return &Handler{
 		service:    service,
-		middleware: NewMiddleware(logger),
+		middleware: NewMiddleware(logger, tokenService),
 	}
 }
 
 func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	router.Use(h.middleware.RequestLogger())
+
+	healthApi := router.Group("/health")
+	healthApi.Get("/", func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	})
 
 	api := router.Group(cfg.BasePath)
 
@@ -51,7 +68,7 @@ func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	h.initCategoryRoutes(api)
 	h.initOrderRoutes(api)
 	h.initPromocodeRoutes(api)
-	api.Get("/health", h.healthCheck)
+	h.initAdminRoutes(api)
 
 	port := fmt.Sprintf(":%d", cfg.Port)
 	h.middleware.logger.Info("starting server",

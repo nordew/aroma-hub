@@ -19,8 +19,8 @@ type Category struct {
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
-func NewCategory(id string, name string) (*Category, error) {
-	c := &Category{
+func NewCategory(id string, name string) (Category, error) {
+	c := Category{
 		ID:        id,
 		Name:      name,
 		CreatedAt: time.Now(),
@@ -28,7 +28,7 @@ func NewCategory(id string, name string) (*Category, error) {
 	}
 
 	if err := c.Validate(); err != nil {
-		return nil, err
+		return Category{}, err
 	}
 
 	return c, nil

@@ -1,5 +1,7 @@
 package consts
 
 const (
-	cacheOtpPrefix = "otp"
+	CacheOtpPrefix = "otp"
+
+	ImagePrefix = "image"
 )

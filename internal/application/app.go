@@ -9,6 +9,7 @@ import (
 	"aroma-hub/internal/infrastructure/adapters/storage"
 	"aroma-hub/internal/infrastructure/workers"
 	"aroma-hub/pkg/auth"
+	"aroma-hub/pkg/client/db/minio_s3"
 	"aroma-hub/pkg/client/db/pgsql"
 	"aroma-hub/pkg/otp_generator"
 	"context"
@@ -42,15 +43,23 @@ func MustRun() {
 		pgsql.MustMigrate(ctx, pool, cfg.Postgres)
 	}
 
+	minioCl := minio_s3.MustConnect(cfg.Minio)
+
 	transactor := pgxtransactor.NewTransactor(pool)
 
 	otpGen := otp_generator.NewDefaultGenerator()
 	cache := stash.NewCache()
-	// TODO: Make this configurable
-	tokenService := auth.NewDefaultTokenService()
+
+	tokenCfg := auth.Config{
+		AccessTokenSecret:    cfg.Auth.AuthSecret,
+		AccessTokenDuration:  cfg.Auth.AccessTokenTTL,
+		RefreshTokenSecret:   cfg.Auth.AuthSecret,
+		RefreshTokenDuration: cfg.Auth.RefreshTokenTTL,
+	}
+	tokenService := auth.NewTokenService(tokenCfg)
 
 	storages := storage.NewStorage(pool)
-	services := service.NewService(storages, transactor, cache, tokenService)
+	services := service.NewService(storages, transactor, cache, tokenService, minioCl)
 
 	promocodeWorker := workers.NewPromocodeWorker(services, logger)
 	promocodeWorker.Start()

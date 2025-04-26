@@ -1,8 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
 -- First add primary key to products table if it doesn't exist
-ALTER TABLE products ADD PRIMARY KEY (id);
-
 CREATE TABLE order_products (
     order_id UUID NOT NULL,
     product_id UUID NOT NULL,

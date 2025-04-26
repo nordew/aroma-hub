@@ -1,5 +1,33 @@
 basePath: /api/v1
 definitions:
+  aroma-hub_internal_application_dto.AdminLoginRequest:
+    properties:
+      otp:
+        type: string
+    required:
+    - otp
+    type: object
+  aroma-hub_internal_application_dto.AdminLoginResponse:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
+  aroma-hub_internal_application_dto.AdminRefreshTokenRequest:
+    properties:
+      refreshToken:
+        type: string
+    required:
+    - refreshToken
+    type: object
+  aroma-hub_internal_application_dto.AdminRefreshTokenResponse:
+    properties:
+      accessToken:
+        type: string
+      refreshToken:
+        type: string
+    type: object
   aroma-hub_internal_application_dto.CreateCategoryRequest:
     properties:
       name:
@@ -43,27 +71,6 @@ definitions:
     - phoneNumber
     - productItems
     - userId
-    type: object
-  aroma-hub_internal_application_dto.CreateProductRequest:
-    properties:
-      brand:
-        type: string
-      categoryName:
-        type: string
-      characteristics:
-        type: string
-      composition:
-        type: string
-      description:
-        type: string
-      imageUrl:
-        type: string
-      name:
-        type: string
-      price:
-        type: number
-      stockAmount:
-        type: integer
     type: object
   aroma-hub_internal_application_dto.CreatePromocodeRequest:
     properties:
@@ -115,6 +122,31 @@ definitions:
         $ref: '#/definitions/aroma-hub_internal_models.OrderStatus'
     required:
     - id
+    type: object
+  aroma-hub_internal_application_dto.UpdateProductRequest:
+    properties:
+      brand:
+        type: string
+      categoryName:
+        type: string
+      characteristics:
+        type: string
+      composition:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      imageUrl:
+        type: string
+      makeVisible:
+        type: boolean
+      name:
+        type: string
+      price:
+        type: number
+      stockAmount:
+        type: integer
     type: object
   aroma-hub_internal_models.Category:
     properties:
@@ -212,6 +244,8 @@ definitions:
         type: integer
       updatedAt:
         type: string
+      visible:
+        type: boolean
     type: object
   aroma-hub_internal_models.Promocode:
     properties:
@@ -278,6 +312,136 @@ info:
   title: Aroma-Hub API
   version: "1.0"
 paths:
+  /admin/login:
+    post:
+      consumes:
+      - application/json
+      description: Admin login with OTP code
+      parameters:
+      - description: Admin login information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.AdminLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin login response
+          schema:
+            $ref: '#/definitions/aroma-hub_internal_application_dto.AdminLoginResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Admin login
+      tags:
+      - admin
+  /admin/products:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of products with optional filtering (invisible included)
+      parameters:
+      - description: Product ID
+        in: query
+        name: id
+        type: string
+      - description: Category ID
+        in: query
+        name: categoryId
+        type: string
+      - description: Category name
+        in: query
+        name: categoryName
+        type: string
+      - description: Brand name
+        in: query
+        name: brand
+        type: string
+      - description: Product name
+        in: query
+        name: name
+        type: string
+      - description: Minimum price
+        in: query
+        name: priceFrom
+        type: integer
+      - description: Maximum price
+        in: query
+        name: priceTo
+        type: integer
+      - description: Minimum stock amount
+        in: query
+        name: stockAmountFrom
+        type: integer
+      - description: Maximum stock amount
+        in: query
+        name: stockAmountTo
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of products
+          schema:
+            items:
+              $ref: '#/definitions/aroma-hub_internal_models.Product'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: List products
+      tags:
+      - admin
+  /admin/refresh:
+    get:
+      consumes:
+      - application/json
+      description: Refresh admin access token
+      parameters:
+      - description: Admin refresh token information
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.AdminRefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin refresh token response
+          schema:
+            $ref: '#/definitions/aroma-hub_internal_application_dto.AdminRefreshTokenResponse'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Admin refresh token
+      tags:
+      - admin
   /categories:
     get:
       consumes:
@@ -637,20 +801,25 @@ paths:
       - products
     post:
       consumes:
-      - application/json
+      - multipart/form-data
       description: Add a new product to the inventory
       parameters:
-      - description: Product information
-        in: body
-        name: product
+      - description: Product image file
+        in: formData
+        name: image
+        type: file
+      - description: Product information in JSON format
+        in: formData
+        name: data
         required: true
-        schema:
-          $ref: '#/definitions/aroma-hub_internal_application_dto.CreateProductRequest'
+        type: string
       produces:
       - application/json
       responses:
         "201":
           description: Created successfully
+          schema:
+            type: string
         "400":
           description: Bad request
           schema:
@@ -691,6 +860,78 @@ paths:
           schema:
             $ref: '#/definitions/errx.Error'
       summary: Delete product
+      tags:
+      - products
+    patch:
+      consumes:
+      - application/json
+      description: Update a product in the inventory
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product information
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Update product
+      tags:
+      - products
+  /products/{id}/set-image:
+    patch:
+      consumes:
+      - multipart/form-data
+      description: Set the image of a product in the inventory
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Product image file
+        in: formData
+        name: image
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "404":
+          description: Not found
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Set product image
       tags:
       - products
   /promocodes:

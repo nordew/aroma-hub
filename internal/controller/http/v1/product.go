@@ -2,7 +2,9 @@ package v1
 
 import (
 	"aroma-hub/internal/application/dto"
+	"aroma-hub/internal/consts"
 	"context"
+	"io"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/nordew/go-errx"
@@ -18,6 +20,8 @@ func (h *Handler) initProductRoutes(api fiber.Router) {
 	products.Use(h.middleware.Auth())
 	products.Post("/", h.createProduct)
 	products.Delete("/:id", h.deleteProduct)
+	products.Patch("/", h.updateProduct)
+	products.Patch("/:id/set-image", h.setImage)
 }
 
 // @Summary List products
@@ -57,10 +61,11 @@ func (h *Handler) listProducts(c *fiber.Ctx) error {
 // @Summary Create product
 // @Description Add a new product to the inventory
 // @Tags products
-// @Accept json
+// @Accept multipart/form-data
 // @Produce json
-// @Param product body dto.CreateProductRequest true "Product information"
-// @Success 201 "Created successfully"
+// @Param image formData file false "Product image file"
+// @Param data formData string true "Product information in JSON format"
+// @Success 201 {object} string "Created successfully"
 // @Failure 400 {object} errx.Error "Bad request"
 // @Failure 500 {object} errx.Error "Internal server error"
 // @Router /products [post]
@@ -68,16 +73,17 @@ func (h *Handler) createProduct(c *fiber.Ctx) error {
 	const op = "createProduct"
 
 	var input dto.CreateProductRequest
-	if err := c.BodyParser(&input); err != nil {
-		return handleError(c, err, op)
-	}
-
-	err := h.service.CreateProduct(context.Background(), input)
+	err := c.BodyParser(&input)
 	if err != nil {
 		return handleError(c, err, op)
 	}
 
-	return writeResponse(c, fiber.StatusCreated, input)
+	err = h.service.CreateProduct(context.Background(), input)
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusCreated, "")
 }
 
 // @Summary Delete product
@@ -105,4 +111,80 @@ func (h *Handler) deleteProduct(c *fiber.Ctx) error {
 	}
 
 	return writeResponse(c, fiber.StatusNoContent, id)
+}
+
+// @Summary Update product
+// @Description Update a product in the inventory
+// @Tags products
+// @Accept json
+// @Produce json
+// @Param id path string true "Product ID"
+// @Param product body dto.UpdateProductRequest true "Product information"
+// @Success 204 "No Content"
+// @Failure 400 {object} errx.Error "Bad request"
+// @Failure 404 {object} errx.Error "Not found"
+// @Failure 500 {object} errx.Error "Internal server error"
+// @Router /products/{id} [patch]
+func (h *Handler) updateProduct(c *fiber.Ctx) error {
+	const op = "updateProduct"
+
+	var input dto.UpdateProductRequest
+	if err := c.BodyParser(&input); err != nil {
+		return handleError(c, err, op)
+	}
+
+	if input.ID == "" {
+		return handleError(c, errx.NewBadRequest().WithDescription("id is empty"), op)
+	}
+
+	err := h.service.UpdateProduct(context.Background(), input)
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusNoContent, "")
+}
+
+// @Summary Set product image
+// @Description Set the image of a product in the inventory
+// @Tags products
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path string true "Product ID"
+// @Param image formData file true "Product image file"
+// @Success 204 "No Content"
+// @Failure 400 {object} errx.Error "Bad request"
+// @Failure 404 {object} errx.Error "Not found"
+// @Failure 500 {object} errx.Error "Internal server error"
+// @Router /products/{id}/set-image [patch]
+func (h *Handler) setImage(c *fiber.Ctx) error {
+	const op = "setImage"
+
+	productID := c.Params("id")
+	if productID == "" {
+		return handleError(c, errx.NewBadRequest().WithDescription("id is empty"), op)
+	}
+
+	file, err := c.FormFile(consts.ImagePrefix)
+	if err != nil {
+		return handleError(c, errx.NewBadRequest().WithDescription("failed to get image file: "+err.Error()), op)
+	}
+
+	fileHandle, err := file.Open()
+	if err != nil {
+		return handleError(c, errx.NewBadRequest().WithDescription("failed to open image file: "+err.Error()), op)
+	}
+	defer fileHandle.Close()
+
+	imageBytes, err := io.ReadAll(fileHandle)
+	if err != nil {
+		return handleError(c, errx.NewBadRequest().WithDescription("failed to read image file: "+err.Error()), op)
+	}
+
+	err = h.service.SetProductImage(context.Background(), productID, imageBytes)
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusNoContent, "")
 }

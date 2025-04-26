@@ -6,7 +6,6 @@ type CreateProductRequest struct {
 	CategoryName    string  `json:"categoryName"`
 	Brand           string  `json:"brand"`
 	Name            string  `json:"name"`
-	ImageURL        string  `json:"imageUrl"`
 	Description     string  `json:"description"`
 	Composition     string  `json:"composition"`
 	Characteristics string  `json:"characteristics"`
@@ -31,12 +30,14 @@ type ListProductFilter struct {
 	StockAmountTo   uint     `json:"leftTo"`
 	SortBy          string   `json:"sortBy"`
 	SortOrder       string   `json:"sortOrder"`
+	ShowInvisible   bool     `json:"-"`
 	Limit           uint     `json:"limit"`
 	Page            uint     `json:"page"`
 }
 
 type UpdateProductRequest struct {
 	ID              string  `json:"id"`
+	Image           []byte  `json:"-"`
 	CategoryName    string  `json:"categoryName"`
 	Brand           string  `json:"brand"`
 	Name            string  `json:"name"`
@@ -46,4 +47,9 @@ type UpdateProductRequest struct {
 	Characteristics string  `json:"characteristics"`
 	Price           float64 `json:"price"`
 	StockAmount     uint    `json:"stockAmount"`
+	MakeVisible     bool    `json:"makeVisible"`
+}
+
+type SetProductImageRequest struct {
+	Image []byte `json:"-"`
 }

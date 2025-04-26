@@ -16,6 +16,8 @@ import (
 type Service interface {
 	CreateProduct(ctx context.Context, input dto.CreateProductRequest) error
 	ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
+	UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error
+	SetProductImage(ctx context.Context, productID string, imageBytes []byte) error
 	DeleteProduct(ctx context.Context, id string) error
 
 	CreateCategory(ctx context.Context, input dto.CreateCategoryRequest) error
@@ -55,6 +57,11 @@ func NewHandler(
 func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	router.Use(h.middleware.RequestLogger())
 
+	healthApi := router.Group("/health")
+	healthApi.Get("/", func(c *fiber.Ctx) error {
+		return c.SendStatus(fiber.StatusOK)
+	})
+
 	api := router.Group(cfg.BasePath)
 
 	h.initProductRoutes(api)
@@ -62,7 +69,6 @@ func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	h.initOrderRoutes(api)
 	h.initPromocodeRoutes(api)
 	h.initAdminRoutes(api)
-	api.Get("/health", h.healthCheck)
 
 	port := fmt.Sprintf(":%d", cfg.Port)
 	h.middleware.logger.Info("starting server",

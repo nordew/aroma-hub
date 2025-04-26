@@ -3,8 +3,8 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS products (
-    id UUID DEFAULT uuid_generate_v4(),
-    category_id UUID NOT NULL,
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    category_id UUID NOT NULL REFERENCES categories(id),
     brand VARCHAR(255) NOT NULL,
     name VARCHAR(255) NOT NULL,
     image_url TEXT,
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS products (
     characteristics TEXT,
     price INTEGER NOT NULL,
     stock_amount INTEGER NOT NULL DEFAULT 0,
+    visible BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );

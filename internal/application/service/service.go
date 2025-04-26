@@ -4,7 +4,9 @@ import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/models"
 	"aroma-hub/pkg/auth"
+	"aroma-hub/pkg/client/db/minio_s3"
 	"context"
+
 	stash "github.com/nordew/go-stash"
 
 	pgxtransactor "github.com/nordew/pgx-transactor"
@@ -42,6 +44,7 @@ type Service struct {
 	transactor   *pgxtransactor.Transactor
 	cache        stash.Cache
 	tokenService *auth.TokenService
+	minioCl      *minio_s3.Client
 }
 
 func NewService(
@@ -49,11 +52,13 @@ func NewService(
 	transactor *pgxtransactor.Transactor,
 	cache stash.Cache,
 	tokenService *auth.TokenService,
+	minioCl *minio_s3.Client,
 ) *Service {
 	return &Service{
 		storage:      storage,
 		transactor:   transactor,
 		cache:        cache,
 		tokenService: tokenService,
+		minioCl:      minioCl,
 	}
 }

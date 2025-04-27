@@ -3,6 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 env:
   APP_DIR: ${{ secrets.PATH_TO_APP }}
@@ -22,16 +23,17 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
 
       - name: Validate SSH connection
-        run: ssh -T ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} exit
+        run: ssh -o StrictHostKeyChecking=accept-new ${{ env.EC2_USER }}@${{ env.EC2_HOST }} "echo SSH connection successful"
 
       - name: Deploy to EC2
         run: |
           ssh -o BatchMode=yes ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
           set -euo pipefail
-            
+          
           if [ ! -d "${{ env.APP_DIR }}/.git" ]; then
             echo "Initializing new repository..."
             mkdir -p "${{ env.APP_DIR }}"
@@ -43,12 +45,33 @@ jobs:
             git fetch origin
             git reset --hard origin/main
           fi
-
+          
+          # Clean untracked files
           git clean -fd
-
+          
+          # Check if .env file exists, if not create from example
+          if [ ! -f ".env" ] && [ -f ".env.example" ]; then
+            echo "Creating .env file from example..."
+            cp .env.example .env
+          fi
+          
+          # Stop and remove containers, then rebuild
+          echo "Rebuilding containers..."
           docker-compose down --remove-orphans || true
-
           docker-compose up -d --build --remove-orphans
-
+          
+          # Clean up unused images
+          echo "Cleaning up Docker images..."
           docker image prune -af
+          
+          echo "Deployment completed successfully!"
           EOF
+
+      - name: Send deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "Deployment completed successfully!"
+          else
+            echo "Deployment failed!"
+          fi

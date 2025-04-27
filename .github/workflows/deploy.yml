@@ -1,32 +1,54 @@
 name: Deploy to EC2
+
 on:
   push:
     branches: [main]
+
+env:
+  APP_DIR: ${{ secrets.PATH_TO_APP }}
+  REPO_URL: ${{ secrets.REPO_URL }}
+  EC2_USER: ${{ secrets.EC2_USERNAME }}
+  EC2_HOST: ${{ secrets.EC2_HOST }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Validate SSH connection
+        run: ssh -T ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} exit
+
       - name: Deploy to EC2
         run: |
-          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
-            if [ ! -d ${{ secrets.PATH_TO_APP }}/.git ]; then
-              cd ${{ secrets.PATH_TO_APP }} &&
-              git init &&
-              git remote add origin ${{ secrets.REPO_URL }} &&
-              git fetch origin main &&
-              git reset --hard origin/main
-            else
-              cd ${{ secrets.PATH_TO_APP }} && 
-              git pull origin main
-            fi && 
-            cd ${{ secrets.PATH_TO_APP }} && 
-            docker-compose down && 
-            docker-compose up -d
-          "
+          ssh -o BatchMode=yes ${{ env.EC2_USER }}@${{ env.EC2_HOST }} << 'EOF'
+          set -euo pipefail
+            
+          if [ ! -d "${{ env.APP_DIR }}/.git" ]; then
+            echo "Initializing new repository..."
+            mkdir -p "${{ env.APP_DIR }}"
+            git clone --branch main "${{ env.REPO_URL }}" "${{ env.APP_DIR }}"
+            cd "${{ env.APP_DIR }}"
+          else
+            echo "Updating existing repository..."
+            cd "${{ env.APP_DIR }}"
+            git fetch origin
+            git reset --hard origin/main
+          fi
+
+          git clean -fd
+
+          docker-compose down --remove-orphans || true
+
+          docker-compose up -d --build --remove-orphans
+
+          docker image prune -af
+          EOF

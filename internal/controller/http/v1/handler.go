@@ -1,14 +1,17 @@
 package v1
 
 import (
-	"aroma-hub/internal/application/dto"
-	"aroma-hub/internal/config"
-	"aroma-hub/pkg/auth"
 	"context"
 	"fmt"
 	"log/slog"
+	"strings"
+
+	"aroma-hub/internal/application/dto"
+	"aroma-hub/internal/config"
+	"aroma-hub/pkg/auth"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/labstack/gommon/log"
 	"github.com/nordew/go-errx"
 )
@@ -57,13 +60,20 @@ func NewHandler(
 func (h *Handler) InitAndServe(router *fiber.App, cfg config.Server) error {
 	router.Use(h.middleware.RequestLogger())
 
+	router.Use(cors.New(cors.Config{
+		AllowOrigins:     strings.Join(cfg.AllowedOrigins, ","),
+		AllowMethods:     strings.Join(cfg.AllowedMethods, ","),
+		AllowHeaders:     strings.Join(cfg.AllowedHeaders, ","),
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
 	healthApi := router.Group("/health")
 	healthApi.Get("/", func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
 
 	api := router.Group(cfg.BasePath)
-
 	h.initProductRoutes(api)
 	h.initCategoryRoutes(api)
 	h.initOrderRoutes(api)

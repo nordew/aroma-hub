@@ -1,11 +1,12 @@
 package storage
 
 import (
-	"aroma-hub/internal/application/dto"
-	"aroma-hub/internal/models"
 	"context"
 	"fmt"
 	"strings"
+
+	"aroma-hub/internal/application/dto"
+	"aroma-hub/internal/models"
 
 	"github.com/Masterminds/squirrel"
 	"github.com/jackc/pgx/v5"
@@ -27,9 +28,11 @@ func (s *Storage) CreateCategory(ctx context.Context, category models.Category) 
 	query := `
 		INSERT INTO categories (name)
 		VALUES ($1)
+		RETURNING id
 	`
-
-	_, err := s.GetQuerier().Exec(ctx, query, category.Name)
+	// TODO: Add id reutrn
+	var id int64
+	err := s.GetQuerier().QueryRow(ctx, query, category.Name).Scan(&id)
 	if err != nil {
 		if strings.Contains(err.Error(), "duplicate key") {
 			return errx.NewAlreadyExists().WithDescriptionAndCause(
@@ -37,7 +40,6 @@ func (s *Storage) CreateCategory(ctx context.Context, category models.Category) 
 				err,
 			)
 		}
-
 		return errx.NewInternal().WithDescriptionAndCause(
 			ErrFailedToCreateCategory,
 			err,
@@ -128,7 +130,6 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 			&category.CreatedAt,
 			&category.UpdatedAt,
 		)
-
 		if err != nil {
 			return nil, errx.NewInternal().WithDescriptionAndCause(
 				ErrFailedToScanCategory,
@@ -151,7 +152,6 @@ func (s *Storage) scanCategories(rows pgx.Rows) ([]models.Category, error) {
 
 func (s *Storage) DeleteCategory(ctx context.Context, id string) error {
 	result, err := s.GetQuerier().Exec(ctx, "DELETE FROM categories WHERE id = $1", id)
-
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause(
 			ErrCategoryDeletionFailed,

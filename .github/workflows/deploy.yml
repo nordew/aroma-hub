@@ -1,25 +1,32 @@
 name: Deploy to EC2
-
 on:
   push:
     branches: [main]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
       - name: Setup SSH
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-
       - name: Deploy to EC2
         run: |
-          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "cd ${{ secrets.PATH_TO_APP }} && \
-          git pull origin main && \
-          docker-compose down && \
-          docker-compose up -d"
+          ssh ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+            if [ ! -d ${{ secrets.PATH_TO_APP }}/.git ]; then
+              cd ${{ secrets.PATH_TO_APP }} &&
+              git init &&
+              git remote add origin ${{ secrets.REPO_URL }} &&
+              git fetch origin main &&
+              git reset --hard origin/main
+            else
+              cd ${{ secrets.PATH_TO_APP }} && 
+              git pull origin main
+            fi && 
+            cd ${{ secrets.PATH_TO_APP }} && 
+            docker-compose down && 
+            docker-compose up -d
+          "

@@ -6,7 +6,6 @@ type Config struct {
 	Server   Server   `env-prefix:"SERVER_"`
 	Postgres Postgres `env-prefix:"POSTGRES_"`
 	Telegram Telegram `env-prefix:"TELEGRAM_"`
-	Minio    Minio    `env-prefix:"MINIO_"`
 	Auth     Auth     `env-prefix:"AUTH_"`
 }
 
@@ -33,12 +32,4 @@ type Postgres struct {
 
 type Telegram struct {
 	Token string `env:"TOKEN"`
-}
-
-type Minio struct {
-	BucketName string `env:"BUCKET_NAME"`
-	Endpoint   string `env:"ENDPOINT"`
-	AccessKey  string `env:"ACCESS_KEY"`
-	SecretKey  string `env:"SECRET_KEY"`
-	UseSSL     bool   `env:"USE_SSL"`
 }

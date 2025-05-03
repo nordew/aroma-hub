@@ -14,6 +14,8 @@ import (
 
 type Storage interface {
 	ListAdmins(ctx context.Context, filter dto.ListAdminFilter) ([]models.Admin, error)
+	ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([]models.Order, int64, error)
+	UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest) error
 }
 
 type OTPGenerator interface {

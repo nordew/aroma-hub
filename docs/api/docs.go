@@ -1297,6 +1297,9 @@ const docTemplate = `{
                 },
                 "quantity": {
                     "type": "integer"
+                },
+                "volume": {
+                    "type": "integer"
                 }
             }
         },

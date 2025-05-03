@@ -18,14 +18,16 @@ func (s *Storage) CreateOrderProduct(ctx context.Context, orderProduct models.Or
 		INSERT INTO order_products (
 			order_id,
 			product_id,
-			quantity
+			quantity,
+			volume
 		)
-		VALUES ($1, $2, $3)
+		VALUES ($1, $2, $3, $4)
 	`
 	_, err := s.GetQuerier().Exec(ctx, query,
 		orderProduct.OrderID,
 		orderProduct.ProductID,
 		orderProduct.Quantity,
+		orderProduct.Volume,
 	)
 	if err != nil {
 		if pgErr, ok := err.(*pgconn.PgError); ok {
@@ -105,6 +107,7 @@ func (s *Storage) buildSearchOrderProductQuery(filter dto.ListOrderProductFilter
 		"order_id",
 		"product_id",
 		"quantity",
+		"volume",
 	).From("order_products")
 
 	countQuery := s.Builder().Select("COUNT(*)").From("order_products")
@@ -132,6 +135,7 @@ func (s *Storage) scanOrderProducts(rows pgx.Rows) ([]models.OrderProduct, error
 			&orderProduct.OrderID,
 			&orderProduct.ProductID,
 			&orderProduct.Quantity,
+			&orderProduct.Volume,
 		)
 
 		if err != nil {

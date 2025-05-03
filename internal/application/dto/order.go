@@ -8,6 +8,7 @@ import (
 type ProductOrderItem struct {
 	ID       string `json:"id"`
 	Quantity uint   `json:"quantity"`
+	Volume   uint   `json:"volume"`
 }
 
 type CreateOrderRequest struct {

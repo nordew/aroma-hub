@@ -150,10 +150,15 @@ func (s *Service) calculateOrderData(
 			return OrderData{}, err
 		}
 
-		orderProduct, err := models.NewOrderProduct(orderID, product.ID, productItem.Quantity)
+		orderProduct, err := models.NewOrderProduct(
+			orderID,
+			product.ID,
+			productItem.Quantity,
+			productItem.Volume)
 		if err != nil {
 			return OrderData{}, fmt.Errorf("creating order product: %w", err)
 		}
+
 		result.OrderProducts = append(result.OrderProducts, orderProduct)
 
 		itemAmount := product.Price.Mul(decimal.NewFromInt(int64(productItem.Quantity)))

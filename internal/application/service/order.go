@@ -50,7 +50,6 @@ func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest)
 
 	order, err := models.NewOrder(
 		orderID,
-		input.UserID,
 		input.FullName,
 		input.PhoneNumber,
 		input.Address,
@@ -63,9 +62,15 @@ func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest)
 		return err
 	}
 
-	return s.executeOrderTransaction(ctx, order, orderData)
-}
+	if err := s.executeOrderTransaction(ctx, order, orderData); err != nil {
+		return err
+	}
 
+	msgText := fmt.Sprintf("Order %s placed", orderID)
+	go s.messagingProvider.BroadcastMessage(ctx, msgText)
+
+	return nil
+}
 func (s *Service) validateOrderInput(ctx context.Context, input dto.CreateOrderRequest) error {
 	if len(input.ProductItems) == 0 {
 		return errx.NewBadRequest().WithDescription("order must contain at least one item")

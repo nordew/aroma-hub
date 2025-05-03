@@ -11,7 +11,6 @@ type ProductOrderItem struct {
 }
 
 type CreateOrderRequest struct {
-	UserID        string               `json:"userId" validate:"required"`
 	FullName      string               `json:"fullName" validate:"required"`
 	PhoneNumber   string               `json:"phoneNumber" validate:"required"`
 	Address       string               `json:"address" validate:"required"`

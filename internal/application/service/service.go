@@ -38,11 +38,16 @@ type Storage interface {
 	ListAdmins(ctx context.Context, filter dto.ListAdminFilter) ([]models.Admin, error)
 }
 
+type MessagingProvider interface {
+	BroadcastMessage(ctx context.Context, text string) error
+}
+
 type Service struct {
-	storage      Storage
-	transactor   *pgxtransactor.Transactor
-	cache        stash.Cache
-	tokenService *auth.TokenService
+	storage           Storage
+	transactor        *pgxtransactor.Transactor
+	cache             stash.Cache
+	tokenService      *auth.TokenService
+	messagingProvider MessagingProvider
 }
 
 func NewService(
@@ -50,11 +55,13 @@ func NewService(
 	transactor *pgxtransactor.Transactor,
 	cache stash.Cache,
 	tokenService *auth.TokenService,
+	messagingProvider MessagingProvider,
 ) *Service {
 	return &Service{
-		storage:      storage,
-		transactor:   transactor,
-		cache:        cache,
-		tokenService: tokenService,
+		storage:           storage,
+		transactor:        transactor,
+		cache:             cache,
+		tokenService:      tokenService,
+		messagingProvider: messagingProvider,
 	}
 }

@@ -1202,8 +1202,7 @@ const docTemplate = `{
                 "fullName",
                 "paymentMethod",
                 "phoneNumber",
-                "productItems",
-                "userId"
+                "productItems"
             ],
             "properties": {
                 "address": {
@@ -1244,9 +1243,6 @@ const docTemplate = `{
                     }
                 },
                 "promoCode": {
-                    "type": "string"
-                },
-                "userId": {
                     "type": "string"
                 }
             }
@@ -1436,9 +1432,6 @@ const docTemplate = `{
                     "$ref": "#/definitions/aroma-hub_internal_models.OrderStatus"
                 },
                 "updatedAt": {
-                    "type": "string"
-                },
-                "userId": {
                     "type": "string"
                 }
             }

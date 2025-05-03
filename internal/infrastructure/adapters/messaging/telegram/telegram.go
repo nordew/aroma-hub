@@ -1,16 +1,19 @@
 package telegram
 
 import (
+	"aroma-hub/internal/application/dto"
+	"aroma-hub/internal/models"
 	"context"
 	"errors"
+	"strconv"
 	"time"
 
 	stash "github.com/nordew/go-stash"
 	"gopkg.in/telebot.v4"
 )
 
-type Service interface {
-	IsAdmin(ctx context.Context, vendorID string) (bool, error)
+type Storage interface {
+	ListAdmins(ctx context.Context, filter dto.ListAdminFilter) ([]models.Admin, error)
 }
 
 type OTPGenerator interface {
@@ -25,14 +28,15 @@ var (
 type TelegramProvider struct {
 	bot      *telebot.Bot
 	apiToken string
-	service  Service
+	storage  Storage
 	otpGen   OTPGenerator
 	cache    stash.Cache
+	adminIDs []int64
 }
 
 func NewTelegramProvider(
 	apiToken string,
-	service Service,
+	storage Storage,
 	otpGen OTPGenerator,
 	cache stash.Cache,
 ) (*TelegramProvider, error) {
@@ -50,18 +54,39 @@ func NewTelegramProvider(
 	return &TelegramProvider{
 		bot:      bot,
 		apiToken: apiToken,
-		service:  service,
+		storage:  storage,
 		otpGen:   otpGen,
 		cache:    cache,
+		adminIDs: []int64{},
 	}, nil
 }
 
 func (p *TelegramProvider) RegisterCommands() {
-	p.RegisterLoginCommand()
+	// p.RegisterLoginCommand()
 }
 
 func (p *TelegramProvider) Start() {
+	p.EnrichAdmins(context.Background())
+
 	go p.bot.Start()
+}
+
+func (p *TelegramProvider) EnrichAdmins(ctx context.Context) error {
+	admins, err := p.storage.ListAdmins(ctx, dto.ListAdminFilter{})
+	if err != nil {
+		return err
+	}
+
+	for _, admin := range admins {
+		int64AdminID, err := strconv.ParseInt(admin.ID, 10, 64)
+		if err != nil {
+			return err
+		}
+
+		p.adminIDs = append(p.adminIDs, int64AdminID)
+	}
+
+	return nil
 }
 
 func (p *TelegramProvider) Stop() {

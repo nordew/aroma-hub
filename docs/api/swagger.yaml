@@ -61,8 +61,6 @@ definitions:
         type: array
       promoCode:
         type: string
-      userId:
-        type: string
     required:
     - address
     - contactType
@@ -70,7 +68,6 @@ definitions:
     - paymentMethod
     - phoneNumber
     - productItems
-    - userId
     type: object
   aroma-hub_internal_application_dto.CreatePromocodeRequest:
     properties:
@@ -194,8 +191,6 @@ definitions:
       status:
         $ref: '#/definitions/aroma-hub_internal_models.OrderStatus'
       updatedAt:
-        type: string
-      userId:
         type: string
     type: object
   aroma-hub_internal_models.OrderStatus:

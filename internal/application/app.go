@@ -1,6 +1,14 @@
 package application
 
 import (
+	"context"
+	"log"
+	"log/slog"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	_ "aroma-hub/docs/api"
 	"aroma-hub/internal/application/service"
 	"aroma-hub/internal/config"
@@ -11,13 +19,6 @@ import (
 	"aroma-hub/pkg/auth"
 	"aroma-hub/pkg/client/db/pgsql"
 	"aroma-hub/pkg/otp_generator"
-	"context"
-	"log"
-	"log/slog"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/swagger"
@@ -56,17 +57,20 @@ func MustRun() {
 	tokenService := auth.NewTokenService(tokenCfg)
 
 	storages := storage.NewStorage(pool)
-	services := service.NewService(storages, transactor, cache, tokenService)
 
-	promocodeWorker := workers.NewPromocodeWorker(services, logger)
-	promocodeWorker.Start()
-
-	telegramProvider, err := telegram.NewTelegramProvider(cfg.Telegram.Token, services, otpGen, cache)
+	telegramProvider, err := telegram.NewTelegramProvider(
+		cfg.Telegram.Token,
+		storages,
+		otpGen,
+		cache,
+	)
 	if err != nil {
 		logger.Fatalf("Failed to create Telegram provider: %v", err)
 	}
+	services := service.NewService(storages, transactor, cache, tokenService, telegramProvider)
 
-	telegramProvider.RegisterLoginCommand()
+	promocodeWorker := workers.NewPromocodeWorker(services, logger)
+	promocodeWorker.Start()
 
 	slogHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,

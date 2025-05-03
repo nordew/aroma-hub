@@ -16,7 +16,6 @@ func (s *Storage) CreateOrder(ctx context.Context, order models.Order) (models.O
 	query := `
 		INSERT INTO orders (
 			id,
-			user_id,
 			full_name,
 			phone_number,
 			address,
@@ -29,12 +28,11 @@ func (s *Storage) CreateOrder(ctx context.Context, order models.Order) (models.O
 			updated_at
 		)
 
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
 
 		RETURNING
 
 		id,
-		user_id,
 		full_name,
 		phone_number,
 		address,
@@ -50,7 +48,6 @@ func (s *Storage) CreateOrder(ctx context.Context, order models.Order) (models.O
 	err := s.GetQuerier().QueryRow(
 		ctx, query,
 		order.ID,
-		order.UserID,
 		order.FullName,
 		order.PhoneNumber,
 		order.Address,
@@ -63,7 +60,6 @@ func (s *Storage) CreateOrder(ctx context.Context, order models.Order) (models.O
 		order.UpdatedAt,
 	).Scan(
 		&result.ID,
-		&result.UserID,
 		&result.FullName,
 		&result.PhoneNumber,
 		&result.Address,
@@ -132,7 +128,6 @@ func (s *Storage) ListOrders(ctx context.Context, filter dto.ListOrderFilter) ([
 func (s *Storage) buildSearchOrderQuery(filter dto.ListOrderFilter) (squirrel.SelectBuilder, squirrel.SelectBuilder) {
 	baseQuery := s.Builder().Select(
 		"id",
-		"user_id",
 		"full_name",
 		"phone_number",
 		"address",
@@ -187,7 +182,6 @@ func (s *Storage) scanOrders(rows pgx.Rows) ([]models.Order, error) {
 
 		err := rows.Scan(
 			&order.ID,
-			&order.UserID,
 			&order.FullName,
 			&order.PhoneNumber,
 			&order.Address,

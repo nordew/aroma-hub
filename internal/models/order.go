@@ -12,7 +12,6 @@ import (
 
 var (
 	ErrIDInvalid             = "ID is invalid"
-	ErrUserIDRequired        = "UserID is required"
 	ErrFullNameRequired      = "FullName is required"
 	ErrPhoneNumberInvalid    = "PhoneNumber is invalid"
 	ErrAddressRequired       = "Address is required"
@@ -52,7 +51,6 @@ const (
 
 type Order struct {
 	ID            string          `json:"id"`
-	UserID        string          `json:"userId"`
 	FullName      string          `json:"fullName"`
 	PhoneNumber   string          `json:"phoneNumber"`
 	Address       string          `json:"address"`
@@ -68,7 +66,6 @@ type Order struct {
 
 func NewOrder(
 	id string,
-	userID string,
 	fullName string,
 	phoneNumber string,
 	address string,
@@ -80,7 +77,6 @@ func NewOrder(
 
 	order := Order{
 		ID:            id,
-		UserID:        userID,
 		FullName:      fullName,
 		PhoneNumber:   phoneNumber,
 		Address:       address,
@@ -103,9 +99,6 @@ func NewOrder(
 func (o Order) validate() error {
 	if _, err := uuid.Parse(o.ID); err != nil {
 		return errx.NewInternal().WithDescription(ErrIDInvalid)
-	}
-	if o.UserID == "" {
-		return errx.NewValidation().WithDescription(ErrUserIDRequired)
 	}
 	if o.FullName == "" {
 		return errx.NewValidation().WithDescription(ErrFullNameRequired)

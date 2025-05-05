@@ -11,6 +11,8 @@ CREATE TABLE order_products (
     FOREIGN KEY (product_id) REFERENCES products (id)
 );
 
+CREATE INDEX idx_order_products_product_id ON order_products (product_id);
+
 -- +goose StatementEnd
 -- +goose Down
 -- +goose StatementBegin

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	"gopkg.in/telebot.v4"
 )
@@ -32,6 +33,8 @@ func (p *TelegramProvider) handleLogin(c telebot.Context) error {
 	if err != nil {
 		return c.Send(fmt.Sprintf("Error generating OTP: %v", err))
 	}
+
+	go p.cache.SetWithTTL(otp, vendorID, 5*time.Minute)
 
 	msg := fmt.Sprintf("🔐 Your login OTP is: `%s`", otp)
 	return c.Send(msg)

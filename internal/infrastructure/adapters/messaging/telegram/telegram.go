@@ -5,7 +5,6 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -69,6 +68,7 @@ func NewTelegramProvider(
 }
 
 func (p *TelegramProvider) registerCommands() {
+	p.registerLoginCommand()
 }
 
 func (p *TelegramProvider) Start() {
@@ -77,12 +77,6 @@ func (p *TelegramProvider) Start() {
 	p.registerCommands()
 
 	p.bot.Start()
-}
-
-func (p *TelegramProvider) helloHandler(c telebot.Context) error {
-	sender := c.Sender()
-	greeting := fmt.Sprintf("Привіт, %s! 👋 Мені приємно з тобою поспілкуватися.", sender.FirstName)
-	return c.Send(greeting)
 }
 
 func (p *TelegramProvider) Stop() {

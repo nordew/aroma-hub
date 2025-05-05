@@ -17,6 +17,7 @@ import (
 	"aroma-hub/internal/infrastructure/adapters/storage"
 	"aroma-hub/internal/infrastructure/workers"
 	"aroma-hub/pkg/auth"
+	"aroma-hub/pkg/client/db/minio_s3"
 	"aroma-hub/pkg/client/db/pgsql"
 	"aroma-hub/pkg/otp_generator"
 
@@ -67,7 +68,18 @@ func MustRun() {
 	if err != nil {
 		logger.Fatalf("Failed to create Telegram provider: %v", err)
 	}
-	services := service.NewService(storages, transactor, cache, tokenService, telegramProvider)
+
+	minio := minio_s3.MustConnect(cfg.Minio)
+
+	services := service.NewService(
+		storages,
+		transactor,
+		cache,
+		tokenService,
+		telegramProvider,
+		minio,
+		cfg.Minio.BucketName,
+	)
 
 	promocodeWorker := workers.NewPromocodeWorker(services, logger)
 	promocodeWorker.Start()
@@ -91,8 +103,6 @@ func MustRun() {
 		stash.StartCacheWorker(ctx, cacheCfg)
 	}()
 
-	telegramProvider.Start()
-
 	serverShutdownDone := make(chan struct{})
 	go func() {
 		defer close(serverShutdownDone)
@@ -101,6 +111,8 @@ func MustRun() {
 			logger.Printf("Server error: %v", err)
 		}
 	}()
+
+	telegramProvider.Start()
 
 	<-signalChan
 	logger.Println("Shutdown signal received")

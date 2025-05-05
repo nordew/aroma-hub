@@ -6,6 +6,7 @@ import (
 	"aroma-hub/pkg/auth"
 	"context"
 
+	"github.com/minio/minio-go/v7"
 	stash "github.com/nordew/go-stash"
 
 	pgxtransactor "github.com/nordew/pgx-transactor"
@@ -48,6 +49,8 @@ type Service struct {
 	cache             stash.Cache
 	tokenService      *auth.TokenService
 	messagingProvider MessagingProvider
+	minioClient       *minio.Client
+	minioBucket       string
 }
 
 func NewService(
@@ -56,6 +59,8 @@ func NewService(
 	cache stash.Cache,
 	tokenService *auth.TokenService,
 	messagingProvider MessagingProvider,
+	minioClient *minio.Client,
+	minioBucket string,
 ) *Service {
 	return &Service{
 		storage:           storage,
@@ -63,5 +68,7 @@ func NewService(
 		cache:             cache,
 		tokenService:      tokenService,
 		messagingProvider: messagingProvider,
+		minioClient:       minioClient,
+		minioBucket:       minioBucket,
 	}
 }

@@ -4,13 +4,14 @@ import (
 	"aroma-hub/internal/application/dto"
 	"aroma-hub/internal/models"
 	"context"
-	"log"
 )
 
 func (s *Service) CreatePromocode(ctx context.Context, input dto.CreatePromocodeRequest) error {
-	log.Printf("Creating promocode with code %s, discount %d%% and expiration %s", input.Code, input.Discount, input.ExpiresAt.Format("2006-01-02"))
-
-	promocode, err := models.NewPromocode(input.Code, input.Discount, input.ExpiresAt)
+	promocode, err := models.NewPromocode(
+		input.Code,
+		input.Discount,
+		input.ExpiresAt,
+	)
 	if err != nil {
 		return err
 	}

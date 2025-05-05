@@ -31,13 +31,16 @@ func (h *Handler) initPromocodeRoutes(api fiber.Router) {
 // @Router /promocodes [post]
 func (h *Handler) createPromocode(c *fiber.Ctx) error {
 	const op = "createPromocode"
+
 	var input dto.CreatePromocodeRequest
 	if err := c.BodyParser(&input); err != nil {
 		return handleError(c, err, op)
 	}
+
 	if err := h.service.CreatePromocode(context.Background(), input); err != nil {
 		return handleError(c, err, op)
 	}
+
 	return writeResponse(c, fiber.StatusCreated, nil)
 }
 

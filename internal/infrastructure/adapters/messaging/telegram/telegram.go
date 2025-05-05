@@ -5,6 +5,8 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"errors"
+	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -33,7 +35,7 @@ type TelegramProvider struct {
 	storage  Storage
 	otpGen   OTPGenerator
 	cache    stash.Cache
-	adminIDs []int64
+	adminIDs map[int64]struct{}
 }
 
 func NewTelegramProvider(
@@ -45,7 +47,10 @@ func NewTelegramProvider(
 	pref := telebot.Settings{
 		Token:     apiToken,
 		Poller:    &telebot.LongPoller{Timeout: 10 * time.Second},
-		ParseMode: telebot.ModeHTML,
+		ParseMode: telebot.ModeMarkdown,
+		OnError: func(err error, c telebot.Context) {
+			log.Printf("[Telebot Error] %v", err)
+		},
 	}
 
 	bot, err := telebot.NewBot(pref)
@@ -59,18 +64,29 @@ func NewTelegramProvider(
 		storage:  storage,
 		otpGen:   otpGen,
 		cache:    cache,
-		adminIDs: []int64{},
+		adminIDs: make(map[int64]struct{}),
 	}, nil
 }
 
-func (p *TelegramProvider) RegisterCommands() {
-	// p.RegisterLoginCommand()
+func (p *TelegramProvider) registerCommands() {
 }
 
 func (p *TelegramProvider) Start() {
 	p.EnrichAdmins(context.Background())
 
-	go p.bot.Start()
+	p.registerCommands()
+
+	p.bot.Start()
+}
+
+func (p *TelegramProvider) helloHandler(c telebot.Context) error {
+	sender := c.Sender()
+	greeting := fmt.Sprintf("Привіт, %s! 👋 Мені приємно з тобою поспілкуватися.", sender.FirstName)
+	return c.Send(greeting)
+}
+
+func (p *TelegramProvider) Stop() {
+	p.bot.Stop()
 }
 
 func (p *TelegramProvider) EnrichAdmins(ctx context.Context) error {
@@ -80,17 +96,21 @@ func (p *TelegramProvider) EnrichAdmins(ctx context.Context) error {
 	}
 
 	for _, admin := range admins {
-		int64AdminID, err := strconv.ParseInt(admin.ID, 10, 64)
+		int64AdminVendorID, err := strconv.ParseInt(admin.VendorID, 10, 64)
 		if err != nil {
 			return err
 		}
 
-		p.adminIDs = append(p.adminIDs, int64AdminID)
+		log.Printf("Admin ID: %d", int64AdminVendorID)
+
+		p.adminIDs[int64AdminVendorID] = struct{}{}
 	}
 
 	return nil
 }
 
-func (p *TelegramProvider) Stop() {
-	p.bot.Stop()
+func (p *TelegramProvider) isAdmin(userID int64) bool {
+	_, ok := p.adminIDs[userID]
+
+	return ok
 }

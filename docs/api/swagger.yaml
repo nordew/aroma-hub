@@ -134,8 +134,8 @@ definitions:
         type: string
       description:
         type: string
-      id:
-        type: string
+      hide:
+        type: boolean
       imageUrl:
         type: string
       makeVisible:

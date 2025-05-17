@@ -1347,8 +1347,8 @@ const docTemplate = `{
                 "description": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "string"
+                "hide": {
+                    "type": "boolean"
                 },
                 "imageUrl": {
                     "type": "string"

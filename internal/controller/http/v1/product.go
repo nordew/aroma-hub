@@ -20,7 +20,7 @@ func (h *Handler) initProductRoutes(api fiber.Router) {
 	// products.Use(h.middleware.Auth())
 	products.Post("/", h.createProduct)
 	products.Delete("/:id", h.deleteProduct)
-	products.Patch("/", h.updateProduct)
+	products.Patch("/:id", h.updateProduct)
 	products.Patch("/:id/set-image", h.setImage)
 }
 
@@ -128,10 +128,17 @@ func (h *Handler) deleteProduct(c *fiber.Ctx) error {
 func (h *Handler) updateProduct(c *fiber.Ctx) error {
 	const op = "updateProduct"
 
+	id := c.Params("id")
+	if id == "" {
+		return handleError(c, errx.NewBadRequest().WithDescription("id is empty"), op)
+	}
+
 	var input dto.UpdateProductRequest
 	if err := c.BodyParser(&input); err != nil {
 		return handleError(c, err, op)
 	}
+
+	input.ID = id
 
 	if input.ID == "" {
 		return handleError(c, errx.NewBadRequest().WithDescription("id is empty"), op)

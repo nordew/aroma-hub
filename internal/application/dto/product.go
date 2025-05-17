@@ -36,7 +36,7 @@ type ListProductFilter struct {
 }
 
 type UpdateProductRequest struct {
-	ID              string  `json:"id"`
+	ID              string  `json:"-"`
 	Image           []byte  `json:"-"`
 	CategoryName    string  `json:"categoryName"`
 	Brand           string  `json:"brand"`
@@ -48,6 +48,7 @@ type UpdateProductRequest struct {
 	Price           float64 `json:"price"`
 	StockAmount     uint    `json:"stockAmount"`
 	MakeVisible     bool    `json:"makeVisible"`
+	Hide            bool    `json:"hide"`
 }
 
 type SetProductImageRequest struct {

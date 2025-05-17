@@ -104,6 +104,7 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		"p.characteristics",
 		"p.price",
 		"p.stock_amount",
+		"p.visible",
 		"p.created_at",
 		"p.updated_at",
 	).
@@ -178,6 +179,7 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 			&p.Characteristics,
 			&p.Price,
 			&p.StockAmount,
+			&p.Visible,
 			&p.CreatedAt,
 			&p.UpdatedAt,
 		)
@@ -249,6 +251,9 @@ func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequ
 	}
 	if input.MakeVisible {
 		query = query.Set("visible", true)
+	}
+	if input.Hide {
+		query = query.Set("visible", false)
 	}
 
 	_, err := s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)

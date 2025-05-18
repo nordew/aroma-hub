@@ -37,7 +37,7 @@ func (h *Handler) initOrderRoutes(api fiber.Router) {
 // @Param toDate query string false "End date for filtering (format: YYYY-MM-DD)"
 // @Param limit query integer false "Number of items per page (default: 10, max: 100)"
 // @Param page query integer false "Page number (default: 1)"
-// @Success 200 {object} dto.ListOrdersResponse "List of orders"
+// @Success 200 {object} dto.OrderResponse "List of orders"
 // @Failure 400 {object} errx.Error "Bad request"
 // @Failure 404 {object} errx.Error "No orders found"
 // @Failure 500 {object} errx.Error "Internal server error"

@@ -19,6 +19,7 @@ import (
 type Service interface {
 	CreateProduct(ctx context.Context, input dto.CreateProductRequest) error
 	ListProducts(ctx context.Context, filter dto.ListProductFilter) (dto.ListProductResponse, error)
+	ListBrands(ctx context.Context) (dto.BrandResponse, error)
 	UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error
 	SetProductImage(ctx context.Context, productID string, imageBytes []byte) error
 	DeleteProduct(ctx context.Context, id string) error
@@ -28,7 +29,7 @@ type Service interface {
 	DeleteCategory(ctx context.Context, id string) error
 
 	CreateOrder(ctx context.Context, order dto.CreateOrderRequest) error
-	ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.ListOrdersResponse, error)
+	ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.OrderResponse, error)
 	UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest) error
 	CancelOrder(ctx context.Context, id string) error
 	DeleteOrder(ctx context.Context, id string) error

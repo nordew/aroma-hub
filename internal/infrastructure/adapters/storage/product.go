@@ -201,6 +201,34 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 	return products, nil
 }
 
+func (s *Storage) ListBrands(ctx context.Context) ([]string, error) {
+	rows, err := s.GetQuerier().Query(
+		ctx,
+		`
+    	SELECT DISTINCT brand
+      	FROM products
+  		ORDER BY brand
+		`)
+	if err != nil {
+		return nil, fmt.Errorf("ListBrands: executing query: %w", err)
+	}
+	defer rows.Close()
+
+	var brands []string
+	for rows.Next() {
+		var b string
+		if err := rows.Scan(&b); err != nil {
+			return nil, fmt.Errorf("ListBrands: scanning row: %w", err)
+		}
+		brands = append(brands, b)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ListBrands: rows iteration: %w", err)
+	}
+
+	return brands, nil
+}
+
 func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error {
 	var categoryID string
 	if input.CategoryName != "" {

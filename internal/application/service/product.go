@@ -124,6 +124,19 @@ func (s *Service) presignGetObject(
 	return url.String(), nil
 }
 
+func (s *Service) ListBrands(ctx context.Context) (dto.BrandResponse, error) {
+	brands, err := s.storage.ListBrands(ctx)
+	if err != nil {
+		return dto.BrandResponse{}, err
+	}
+
+	resp := dto.BrandResponse{
+		Brands: brands,
+	}
+
+	return resp, nil
+}
+
 func (s *Service) UpdateProduct(ctx context.Context, input dto.UpdateProductRequest) error {
 	var newCategoryName string
 	if input.CategoryName != "" {

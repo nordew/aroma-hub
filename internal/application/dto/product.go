@@ -35,6 +35,10 @@ type ListProductFilter struct {
 	Page            uint     `json:"page"`
 }
 
+type BrandResponse struct {
+	Brands []string `json:"brands"`
+}
+
 type UpdateProductRequest struct {
 	ID              string  `json:"-"`
 	Image           []byte  `json:"-"`

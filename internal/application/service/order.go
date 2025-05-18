@@ -31,6 +31,12 @@ type OrderData struct {
 	OrderProducts []models.OrderProduct
 }
 
+type productInfoResult struct {
+	productIDs   []string
+	productByID  map[string]models.Product
+	quantityByID map[string]uint
+}
+
 func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest) error {
 	if err := s.validateOrderInput(ctx, input); err != nil {
 		return err
@@ -71,6 +77,7 @@ func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest)
 
 	return nil
 }
+
 func (s *Service) validateOrderInput(ctx context.Context, input dto.CreateOrderRequest) error {
 	if len(input.ProductItems) == 0 {
 		return errx.NewBadRequest().WithDescription("order must contain at least one item")
@@ -85,13 +92,7 @@ func (s *Service) validateOrderInput(ctx context.Context, input dto.CreateOrderR
 	return nil
 }
 
-type productInfoResult struct {
-	productIDs   []string
-	productByID  map[string]models.Product
-	quantityByID map[string]uint
-}
-
-func (s *Service) prepareProductInfo(ctx context.Context, productItems []dto.ProductOrderItem) (productInfoResult, error) {
+func (s *Service) prepareProductInfo(ctx context.Context, productItems []dto.ProductOrder) (productInfoResult, error) {
 	result := productInfoResult{
 		productIDs:   make([]string, 0, len(productItems)),
 		productByID:  make(map[string]models.Product),
@@ -129,7 +130,7 @@ func (s *Service) prepareProductInfo(ctx context.Context, productItems []dto.Pro
 }
 
 func (s *Service) calculateOrderData(
-	productItems []dto.ProductOrderItem,
+	productItems []dto.ProductOrder,
 	orderID string,
 	productByID map[string]models.Product,
 ) (OrderData, error) {
@@ -154,7 +155,8 @@ func (s *Service) calculateOrderData(
 			orderID,
 			product.ID,
 			productItem.Quantity,
-			productItem.Volume)
+			productItem.Volume,
+		)
 		if err != nil {
 			return OrderData{}, fmt.Errorf("creating order product: %w", err)
 		}
@@ -172,8 +174,7 @@ func (s *Service) calculateOrderData(
 
 func (s *Service) validateProductStock(product models.Product, requestedQuantity uint) error {
 	if product.StockAmount == 0 {
-		return errx.NewBadRequest().WithDescription(
-			fmt.Sprintf("invalid quantity for product %s: must be greater than zero", product.Name))
+		return errx.NewBadRequest().WithDescription("product is out of stock")
 	}
 
 	if product.StockAmount < requestedQuantity {
@@ -215,7 +216,7 @@ func (s *Service) validatePromoCode(ctx context.Context, promoCode string) error
 		Code: promoCode,
 	})
 	if err != nil {
-		return errx.NewInternal().WithDescriptionAndCause("failed to fetch promo code", err)
+		return err
 	}
 	code := promoCodes[0]
 
@@ -226,104 +227,98 @@ func (s *Service) validatePromoCode(ctx context.Context, promoCode string) error
 	return nil
 }
 
-func (s *Service) ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.ListOrdersResponse, error) {
+func (s *Service) ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.OrderResponse, error) {
 	orders, total, err := s.storage.ListOrders(ctx, filter)
 	if err != nil {
-		return dto.ListOrdersResponse{}, fmt.Errorf("failed to list orders: %w", err)
+		return dto.OrderResponse{}, fmt.Errorf("failed to list orders: %w", err)
 	}
 
-	if err := s.enrichOrdersWithProducts(ctx, orders); err != nil {
-		return dto.ListOrdersResponse{}, err
+	orderIDs := extractOrderIDs(orders)
+
+	orderProducts, _, err := s.storage.ListOrderProducts(ctx, dto.ListOrderProductFilter{OrderIDs: orderIDs})
+	if err != nil && !errx.IsCode(err, errx.NotFound) {
+		return dto.OrderResponse{}, fmt.Errorf("failed to list order products: %w", err)
 	}
 
-	return dto.ListOrdersResponse{
-		Orders: orders,
-		Total:  total,
-	}, nil
-}
-
-func (s *Service) enrichOrdersWithProducts(ctx context.Context, orders []models.Order) error {
-	orderIDs := make([]string, len(orders))
-	for i := range orders {
-		order := &orders[i]
-		orderIDs[i] = order.ID
-	}
-
-	allOrderProducts, _, err := s.storage.ListOrderProducts(ctx, dto.ListOrderProductFilter{
-		OrderIDs: orderIDs,
-	})
-	if err != nil {
-		if errx.IsCode(err, errx.NotFound) {
-			for i := range orders {
-				order := &orders[i]
-				order.Products = []models.Product{}
-			}
-
-			return nil
-		}
-
-		return fmt.Errorf("failed to fetch order products: %w", err)
-	}
-
-	orderToProductIDs := make(map[string][]string)
-	allProductIDs := make([]string, 0, len(allOrderProducts))
-
-	for _, op := range allOrderProducts {
-		orderToProductIDs[op.OrderID] = append(orderToProductIDs[op.OrderID], op.ProductID)
-		allProductIDs = append(allProductIDs, op.ProductID)
-	}
-
-	if len(allProductIDs) == 0 {
-		for i := range orders {
-			order := &orders[i]
-			order.Products = []models.Product{}
-		}
-
-		return nil
-	}
+	productIDs := extractProductIDs(orderProducts)
 
 	products, _, err := s.storage.ListProducts(ctx, dto.ListProductFilter{
-		IDs:   allProductIDs,
-		Limit: uint(len(allProductIDs)),
+		IDs:   productIDs,
+		Limit: uint(len(productIDs)),
 	})
-	if err != nil {
-		if errx.IsCode(err, errx.NotFound) {
-			for i := range orders {
-				order := &orders[i]
-				order.Products = []models.Product{}
-			}
-
-			return nil
-		}
-
-		return fmt.Errorf("failed to fetch products: %w", err)
+	if err != nil && !errx.IsCode(err, errx.NotFound) {
+		return dto.OrderResponse{}, fmt.Errorf("failed to list products: %w", err)
 	}
 
 	productMap := make(map[string]models.Product, len(products))
-	for _, product := range products {
-		productMap[product.ID] = product
+	for _, p := range products {
+		productMap[p.ID] = p
 	}
 
-	for i := range orders {
-		order := &orders[i]
-		productIDs, exists := orderToProductIDs[order.ID]
-		if !exists {
-			order.Products = []models.Product{}
-			continue
-		}
+	orderProductsMap := make(map[string][]models.OrderProduct, len(orders))
+	for _, op := range orderProducts {
+		orderProductsMap[op.OrderID] = append(orderProductsMap[op.OrderID], op)
+	}
 
-		orderProducts := make([]models.Product, 0, len(productIDs))
+	orderDTOs := make([]dto.Order, len(orders))
+	for i, o := range orders {
+		items := make([]dto.ProductOrder, 0, len(orderProductsMap[o.ID]))
 
-		for _, productID := range productIDs {
-			if product, ok := productMap[productID]; ok {
-				orderProducts = append(orderProducts, product)
+		for _, op := range orderProductsMap[o.ID] {
+			if p, ok := productMap[op.ProductID]; ok {
+				items = append(items, dto.ProductOrder{
+					ID:       p.ID,
+					Name:     p.Name,
+					Brand:    p.Brand,
+					Price:    uint(p.Price.IntPart()),
+					Quantity: op.Quantity,
+					Volume:   op.Volume,
+				})
 			}
 		}
 
-		order.Products = orderProducts
+		orderDTOs[i] = dto.Order{
+			ID:            o.ID,
+			FullName:      o.FullName,
+			PhoneNumber:   o.PhoneNumber,
+			Address:       o.Address,
+			PaymentMethod: o.PaymentMethod,
+			Status:        o.Status,
+			CreatedAt:     o.CreatedAt,
+			UpdatedAt:     o.UpdatedAt,
+			Products:      items,
+		}
 	}
 
-	return nil
+	return dto.OrderResponse{
+		Count:  uint(total),
+		Orders: orderDTOs,
+	}, nil
+}
+
+func extractOrderIDs(orders []models.Order) []string {
+	ids := make([]string, len(orders))
+
+	for i, o := range orders {
+		ids[i] = o.ID
+	}
+
+	return ids
+}
+
+func extractProductIDs(orderProducts []models.OrderProduct) []string {
+	set := make(map[string]struct{}, len(orderProducts))
+
+	for _, op := range orderProducts {
+		set[op.ProductID] = struct{}{}
+	}
+
+	ids := make([]string, 0, len(set))
+	for id := range set {
+		ids = append(ids, id)
+	}
+
+	return ids
 }
 
 func (s *Service) UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest) error {

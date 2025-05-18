@@ -28,6 +28,13 @@ definitions:
       refreshToken:
         type: string
     type: object
+  aroma-hub_internal_application_dto.BrandResponse:
+    properties:
+      brands:
+        items:
+          type: string
+        type: array
+    type: object
   aroma-hub_internal_application_dto.CreateCategoryRequest:
     properties:
       name:
@@ -57,7 +64,7 @@ definitions:
         type: string
       productItems:
         items:
-          $ref: '#/definitions/aroma-hub_internal_application_dto.ProductOrderItem'
+          $ref: '#/definitions/aroma-hub_internal_application_dto.ProductOrder'
         type: array
       promoCode:
         type: string
@@ -78,15 +85,6 @@ definitions:
       expiresAt:
         type: string
     type: object
-  aroma-hub_internal_application_dto.ListOrdersResponse:
-    properties:
-      orders:
-        items:
-          $ref: '#/definitions/aroma-hub_internal_models.Order'
-        type: array
-      total:
-        type: integer
-    type: object
   aroma-hub_internal_application_dto.ListPromocodesResponse:
     properties:
       promocodes:
@@ -96,14 +94,63 @@ definitions:
       total:
         type: integer
     type: object
-  aroma-hub_internal_application_dto.ProductOrderItem:
+  aroma-hub_internal_application_dto.Order:
     properties:
+      address:
+        type: string
+      amountToPay:
+        type: integer
+      contactType:
+        $ref: '#/definitions/aroma-hub_internal_models.ContactType'
+      createdAt:
+        type: string
+      fullName:
+        type: string
       id:
         type: string
+      paymentMethod:
+        $ref: '#/definitions/aroma-hub_internal_models.PaymentMethod'
+      phoneNumber:
+        type: string
+      products:
+        items:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.ProductOrder'
+        type: array
+      status:
+        $ref: '#/definitions/aroma-hub_internal_models.OrderStatus'
+      updatedAt:
+        type: string
+    type: object
+  aroma-hub_internal_application_dto.OrderResponse:
+    properties:
+      count:
+        type: integer
+      orders:
+        items:
+          $ref: '#/definitions/aroma-hub_internal_application_dto.Order'
+        type: array
+    type: object
+  aroma-hub_internal_application_dto.ProductOrder:
+    properties:
+      brand:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      price:
+        type: integer
       quantity:
         type: integer
       volume:
         type: integer
+    required:
+    - brand
+    - id
+    - name
+    - price
+    - quantity
+    - volume
     type: object
   aroma-hub_internal_application_dto.UpdateOrderRequest:
     properties:
@@ -166,35 +213,6 @@ definitions:
     x-enum-varnames:
     - ContactTypeTelegram
     - ContactTypePhone
-  aroma-hub_internal_models.Order:
-    properties:
-      address:
-        type: string
-      amountToPay:
-        type: number
-      contactType:
-        $ref: '#/definitions/aroma-hub_internal_models.ContactType'
-      createdAt:
-        type: string
-      fullName:
-        type: string
-      id:
-        type: string
-      paymentMethod:
-        $ref: '#/definitions/aroma-hub_internal_models.PaymentMethod'
-      phoneNumber:
-        type: string
-      products:
-        items:
-          $ref: '#/definitions/aroma-hub_internal_models.Product'
-        type: array
-      promoCode:
-        type: string
-      status:
-        $ref: '#/definitions/aroma-hub_internal_models.OrderStatus'
-      updatedAt:
-        type: string
-    type: object
   aroma-hub_internal_models.OrderStatus:
     enum:
     - pending
@@ -593,7 +611,7 @@ paths:
         "200":
           description: List of orders
           schema:
-            $ref: '#/definitions/aroma-hub_internal_application_dto.ListOrdersResponse'
+            $ref: '#/definitions/aroma-hub_internal_application_dto.OrderResponse'
         "400":
           description: Bad request
           schema:
@@ -929,6 +947,25 @@ paths:
           schema:
             $ref: '#/definitions/errx.Error'
       summary: Set product image
+      tags:
+      - products
+  /products/brands:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of product brands
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of brands
+          schema:
+            $ref: '#/definitions/aroma-hub_internal_application_dto.BrandResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: List brands
       tags:
       - products
   /promocodes:

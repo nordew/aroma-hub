@@ -16,8 +16,9 @@ func (h *Handler) initProductRoutes(api fiber.Router) {
 	products := api.Group("/products")
 
 	products.Get("/", h.listProducts)
+	products.Get("/brands", h.listBrands)
 
-	// products.Use(h.middleware.Auth())
+	products.Use(h.middleware.Auth())
 	products.Post("/", h.createProduct)
 	products.Delete("/:id", h.deleteProduct)
 	products.Patch("/:id", h.updateProduct)
@@ -84,6 +85,25 @@ func (h *Handler) createProduct(c *fiber.Ctx) error {
 	}
 
 	return writeResponse(c, fiber.StatusCreated, "")
+}
+
+// @Summary List brands
+// @Description Get a list of product brands
+// @Tags products
+// @Accept json
+// @Produce json
+// @Success 200 {object} dto.BrandResponse "List of brands"
+// @Failure 500 {object} errx.Error "Internal server error"
+// @Router /products/brands [get]
+func (h *Handler) listBrands(c *fiber.Ctx) error {
+	const op = "listBrands"
+
+	brands, err := h.service.ListBrands(context.Background())
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusOK, brands)
 }
 
 // @Summary Delete product

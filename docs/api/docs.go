@@ -447,7 +447,7 @@ const docTemplate = `{
                     "200": {
                         "description": "List of orders",
                         "schema": {
-                            "$ref": "#/definitions/aroma-hub_internal_application_dto.ListOrdersResponse"
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.OrderResponse"
                         }
                     },
                     "400": {
@@ -791,6 +791,35 @@ const docTemplate = `{
                         "description": "Bad request",
                         "schema": {
                             "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/brands": {
+            "get": {
+                "description": "Get a list of product brands",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "List brands",
+                "responses": {
+                    "200": {
+                        "description": "List of brands",
+                        "schema": {
+                            "$ref": "#/definitions/aroma-hub_internal_application_dto.BrandResponse"
                         }
                     },
                     "500": {
@@ -1183,6 +1212,17 @@ const docTemplate = `{
                 }
             }
         },
+        "aroma-hub_internal_application_dto.BrandResponse": {
+            "type": "object",
+            "properties": {
+                "brands": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "aroma-hub_internal_application_dto.CreateCategoryRequest": {
             "type": "object",
             "required": [
@@ -1239,7 +1279,7 @@ const docTemplate = `{
                 "productItems": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/aroma-hub_internal_application_dto.ProductOrderItem"
+                        "$ref": "#/definitions/aroma-hub_internal_application_dto.ProductOrder"
                     }
                 },
                 "promoCode": {
@@ -1261,20 +1301,6 @@ const docTemplate = `{
                 }
             }
         },
-        "aroma-hub_internal_application_dto.ListOrdersResponse": {
-            "type": "object",
-            "properties": {
-                "orders": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/aroma-hub_internal_models.Order"
-                    }
-                },
-                "total": {
-                    "type": "integer"
-                }
-            }
-        },
         "aroma-hub_internal_application_dto.ListPromocodesResponse": {
             "type": "object",
             "properties": {
@@ -1289,11 +1315,83 @@ const docTemplate = `{
                 }
             }
         },
-        "aroma-hub_internal_application_dto.ProductOrderItem": {
+        "aroma-hub_internal_application_dto.Order": {
             "type": "object",
             "properties": {
+                "address": {
+                    "type": "string"
+                },
+                "amountToPay": {
+                    "type": "integer"
+                },
+                "contactType": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.ContactType"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "fullName": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
+                },
+                "paymentMethod": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.PaymentMethod"
+                },
+                "phoneNumber": {
+                    "type": "string"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/aroma-hub_internal_application_dto.ProductOrder"
+                    }
+                },
+                "status": {
+                    "$ref": "#/definitions/aroma-hub_internal_models.OrderStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "aroma-hub_internal_application_dto.OrderResponse": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer"
+                },
+                "orders": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/aroma-hub_internal_application_dto.Order"
+                    }
+                }
+            }
+        },
+        "aroma-hub_internal_application_dto.ProductOrder": {
+            "type": "object",
+            "required": [
+                "brand",
+                "id",
+                "name",
+                "price",
+                "quantity",
+                "volume"
+            ],
+            "properties": {
+                "brand": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "integer"
                 },
                 "quantity": {
                     "type": "integer"
@@ -1394,50 +1492,6 @@ const docTemplate = `{
                 "ContactTypeTelegram",
                 "ContactTypePhone"
             ]
-        },
-        "aroma-hub_internal_models.Order": {
-            "type": "object",
-            "properties": {
-                "address": {
-                    "type": "string"
-                },
-                "amountToPay": {
-                    "type": "number"
-                },
-                "contactType": {
-                    "$ref": "#/definitions/aroma-hub_internal_models.ContactType"
-                },
-                "createdAt": {
-                    "type": "string"
-                },
-                "fullName": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "paymentMethod": {
-                    "$ref": "#/definitions/aroma-hub_internal_models.PaymentMethod"
-                },
-                "phoneNumber": {
-                    "type": "string"
-                },
-                "products": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/aroma-hub_internal_models.Product"
-                    }
-                },
-                "promoCode": {
-                    "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/aroma-hub_internal_models.OrderStatus"
-                },
-                "updatedAt": {
-                    "type": "string"
-                }
-            }
         },
         "aroma-hub_internal_models.OrderStatus": {
             "type": "string",

@@ -29,6 +29,7 @@ type Product struct {
 	Price           decimal.Decimal `json:"price"`
 	StockAmount     uint            `json:"stockAmount"`
 	Visible         bool            `json:"visible"`
+	IsBestSeller    bool            `json:"isBestSeller"`
 	CreatedAt       time.Time       `json:"createdAt"`
 	UpdatedAt       time.Time       `json:"updatedAt"`
 }
@@ -36,6 +37,7 @@ type Product struct {
 func NewProduct(
 	id, categoryID, brand, name, description, composition, characteristics string,
 	price decimal.Decimal, stockAmount uint,
+	isBestSeller bool,
 ) (Product, error) {
 	p := Product{
 		ID:              id,
@@ -48,6 +50,7 @@ func NewProduct(
 		Price:           price,
 		StockAmount:     stockAmount,
 		Visible:         false,
+		IsBestSeller:    isBestSeller,
 		CreatedAt:       time.Now(),
 		UpdatedAt:       time.Now(),
 	}

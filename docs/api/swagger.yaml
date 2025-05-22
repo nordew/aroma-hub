@@ -191,8 +191,12 @@ definitions:
         type: string
       price:
         type: number
+      setBestSeller:
+        type: boolean
       stockAmount:
         type: integer
+      unsetBestSeller:
+        type: boolean
     type: object
   aroma-hub_internal_models.Category:
     properties:
@@ -251,6 +255,8 @@ definitions:
         type: string
       imageUrl:
         type: string
+      isBestSeller:
+        type: boolean
       name:
         type: string
       price:
@@ -947,6 +953,40 @@ paths:
           schema:
             $ref: '#/definitions/errx.Error'
       summary: Set product image
+      tags:
+      - products
+  /products/best-sellers:
+    get:
+      consumes:
+      - application/json
+      description: Get a list of best-selling products
+      parameters:
+      - description: Limit number of results
+        in: query
+        name: limit
+        type: integer
+      - description: Page number for pagination
+        in: query
+        name: page
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of best-selling products
+          schema:
+            items:
+              $ref: '#/definitions/aroma-hub_internal_models.Product'
+            type: array
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/errx.Error'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/errx.Error'
+      summary: Get best sellers
       tags:
       - products
   /products/brands:

@@ -42,6 +42,7 @@ func (s *Service) CreateProduct(ctx context.Context, input dto.CreateProductRequ
 		input.Characteristics,
 		decimal.NewFromFloat(input.Price),
 		input.StockAmount,
+		input.IsBestSeller,
 	)
 	if err != nil {
 		return err

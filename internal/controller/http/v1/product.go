@@ -17,6 +17,7 @@ func (h *Handler) initProductRoutes(api fiber.Router) {
 
 	products.Get("/", h.listProducts)
 	products.Get("/brands", h.listBrands)
+	products.Get("/best-sellers", h.listBestSellers)
 
 	products.Use(h.middleware.Auth())
 	products.Post("/", h.createProduct)
@@ -49,6 +50,32 @@ func (h *Handler) listProducts(c *fiber.Ctx) error {
 	var filter dto.ListProductFilter
 	if err := c.QueryParser(&filter); err != nil {
 		return handleError(c, err, op)
+	}
+
+	resp, err := h.service.ListProducts(context.Background(), filter)
+	if err != nil {
+		return handleError(c, err, op)
+	}
+
+	return writeResponse(c, fiber.StatusOK, resp)
+}
+
+// @Summary Get best sellers
+// @Description Get a list of best-selling products
+// @Tags products
+// @Accept json
+// @Produce json
+// @Param limit query integer false "Limit number of results"
+// @Param page query integer false "Page number for pagination"
+// @Success 200 {object} []models.Product "List of best-selling products"
+// @Failure 400 {object} errx.Error "Bad request"
+// @Failure 500 {object} errx.Error "Internal server error"
+// @Router /products/best-sellers [get]
+func (h *Handler) listBestSellers(c *fiber.Ctx) error {
+	const op = "listBestSellers"
+
+	filter := dto.ListProductFilter{
+		OnlyBestSellers: true,
 	}
 
 	resp, err := h.service.ListProducts(context.Background(), filter)

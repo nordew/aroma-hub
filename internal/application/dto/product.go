@@ -10,6 +10,7 @@ type CreateProductRequest struct {
 	Composition     string  `json:"composition"`
 	Characteristics string  `json:"characteristics"`
 	Price           float64 `json:"price"`
+	IsBestSeller    bool    `json:"isBestSeller"`
 	StockAmount     uint    `json:"stockAmount"`
 }
 
@@ -30,6 +31,7 @@ type ListProductFilter struct {
 	StockAmountTo   uint     `json:"leftTo"`
 	SortBy          string   `json:"sortBy"`
 	SortOrder       string   `json:"sortOrder"`
+	OnlyBestSellers bool     `json:"onlyBestSellers"`
 	ShowInvisible   bool     `json:"-"`
 	Limit           uint     `json:"limit"`
 	Page            uint     `json:"page"`
@@ -53,6 +55,8 @@ type UpdateProductRequest struct {
 	StockAmount     uint    `json:"stockAmount"`
 	MakeVisible     bool    `json:"makeVisible"`
 	Hide            bool    `json:"hide"`
+	SetBestSeller   bool    `json:"setBestSeller"`
+	UnsetBestSeller bool    `json:"unsetBestSeller"`
 }
 
 type SetProductImageRequest struct {

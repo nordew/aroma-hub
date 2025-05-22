@@ -802,6 +802,58 @@ const docTemplate = `{
                 }
             }
         },
+        "/products/best-sellers": {
+            "get": {
+                "description": "Get a list of best-selling products",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "products"
+                ],
+                "summary": "Get best sellers",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit number of results",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number for pagination",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "List of best-selling products",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/aroma-hub_internal_models.Product"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/errx.Error"
+                        }
+                    }
+                }
+            }
+        },
         "/products/brands": {
             "get": {
                 "description": "Get a list of product brands",
@@ -1460,8 +1512,14 @@ const docTemplate = `{
                 "price": {
                     "type": "number"
                 },
+                "setBestSeller": {
+                    "type": "boolean"
+                },
                 "stockAmount": {
                     "type": "integer"
+                },
+                "unsetBestSeller": {
+                    "type": "boolean"
                 }
             }
         },
@@ -1545,6 +1603,9 @@ const docTemplate = `{
                 },
                 "imageUrl": {
                     "type": "string"
+                },
+                "isBestSeller": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"

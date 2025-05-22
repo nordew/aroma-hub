@@ -19,9 +19,9 @@ func (s *Storage) CreateProduct(ctx context.Context, product models.Product) err
 	_, err := s.GetQuerier().Exec(
 		ctx,
 		`
-		INSERT INTO products (id, category_id, brand, name, image_url, description, composition, characteristics, price, stock_amount)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-	`,
+		INSERT INTO products (id, category_id, brand, name, image_url, description, composition, characteristics, price, stock_amount, is_best_seller)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		`,
 		product.ID,
 		product.CategoryID,
 		product.Brand,
@@ -32,6 +32,7 @@ func (s *Storage) CreateProduct(ctx context.Context, product models.Product) err
 		product.Characteristics,
 		product.Price,
 		product.StockAmount,
+		product.IsBestSeller,
 	)
 	if err != nil {
 		return errx.NewInternal().WithDescriptionAndCause("product creation failed", err)
@@ -104,6 +105,7 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		"p.characteristics",
 		"p.price",
 		"p.stock_amount",
+		"p.is_best_seller",
 		"p.visible",
 		"p.created_at",
 		"p.updated_at",
@@ -117,6 +119,10 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 	if len(filter.IDs) > 0 {
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.id": filter.IDs})
 		countQuery = countQuery.Where(squirrel.Eq{"p.id": filter.IDs})
+	}
+	if filter.OnlyBestSellers {
+		baseQuery = baseQuery.Where(squirrel.Eq{"p.is_best_seller": true})
+		countQuery = countQuery.Where(squirrel.Eq{"p.is_best_seller": true})
 	}
 	if filter.CategoryID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.category_id": filter.CategoryID})
@@ -179,6 +185,7 @@ func (s *Storage) scanProducts(rows pgx.Rows) ([]models.Product, error) {
 			&p.Characteristics,
 			&p.Price,
 			&p.StockAmount,
+			&p.IsBestSeller,
 			&p.Visible,
 			&p.CreatedAt,
 			&p.UpdatedAt,
@@ -205,9 +212,9 @@ func (s *Storage) ListBrands(ctx context.Context) ([]string, error) {
 	rows, err := s.GetQuerier().Query(
 		ctx,
 		`
-    	SELECT DISTINCT brand
-      	FROM products
-  		ORDER BY brand
+		SELECT DISTINCT brand
+		FROM products
+		ORDER BY brand
 		`)
 	if err != nil {
 		return nil, fmt.Errorf("ListBrands: executing query: %w", err)
@@ -274,14 +281,20 @@ func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequ
 	{
 		query = query.Set("stock_amount", input.StockAmount)
 	}
-	if categoryID != "" {
-		query = query.Set("category_id", categoryID)
-	}
 	if input.MakeVisible {
 		query = query.Set("visible", true)
 	}
 	if input.Hide {
 		query = query.Set("visible", false)
+	}
+	if input.SetBestSeller {
+		query = query.Set("is_best_seller", true)
+	}
+	if input.UnsetBestSeller {
+		query = query.Set("is_best_seller", false)
+	}
+	if categoryID != "" {
+		query = query.Set("category_id", categoryID)
 	}
 
 	_, err := s.squirrelHelper.Exec(ctx, s.GetQuerier(), query)

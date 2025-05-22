@@ -27,8 +27,7 @@ type ListProductFilter struct {
 	Name            string   `json:"name"`
 	PriceFrom       uint     `json:"priceFrom"`
 	PriceTo         uint     `json:"priceTo"`
-	StockAmountFrom uint     `json:"leftFrom"`
-	StockAmountTo   uint     `json:"leftTo"`
+	StockAmount     uint     `json:"stockAmount"`
 	SortBy          string   `json:"sortBy"`
 	SortOrder       string   `json:"sortOrder"`
 	OnlyBestSellers bool     `json:"onlyBestSellers"`

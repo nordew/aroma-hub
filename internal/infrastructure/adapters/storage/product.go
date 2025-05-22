@@ -148,17 +148,13 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		baseQuery = baseQuery.Where(squirrel.LtOrEq{"p.price": filter.PriceTo})
 		countQuery = countQuery.Where(squirrel.LtOrEq{"p.price": filter.PriceTo})
 	}
-	if filter.StockAmountFrom > 0 {
-		baseQuery = baseQuery.Where(squirrel.GtOrEq{"p.stock_amount": filter.StockAmountFrom})
-		countQuery = countQuery.Where(squirrel.GtOrEq{"p.stock_amount": filter.StockAmountFrom})
-	}
-	if filter.StockAmountTo > 0 {
-		baseQuery = baseQuery.Where(squirrel.LtOrEq{"p.stock_amount": filter.StockAmountTo})
-		countQuery = countQuery.Where(squirrel.LtOrEq{"p.stock_amount": filter.StockAmountTo})
-	}
 	if !filter.ShowInvisible {
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.visible": true})
 		countQuery = countQuery.Where(squirrel.Eq{"p.visible": true})
+	}
+	if filter.StockAmount > 0 {
+		baseQuery = baseQuery.Where(squirrel.GtOrEq{"p.stock_amount": filter.StockAmount})
+		countQuery = countQuery.Where(squirrel.GtOrEq{"p.stock_amount": filter.StockAmount})
 	}
 
 	return baseQuery, countQuery

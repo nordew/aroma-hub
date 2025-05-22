@@ -274,9 +274,7 @@ func (s *Storage) UpdateProduct(ctx context.Context, input dto.UpdateProductRequ
 	if input.Price > 0 {
 		reqPriceDecimal := decimal.NewFromFloat(input.Price)
 
-		if !reqPriceDecimal.Equal(reqPriceDecimal) {
-			query = query.Set("price", reqPriceDecimal)
-		}
+		query = query.Set("price", reqPriceDecimal)
 	}
 	{
 		query = query.Set("stock_amount", input.StockAmount)

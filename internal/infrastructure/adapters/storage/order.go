@@ -259,6 +259,8 @@ func (s *Storage) UpdateOrder(ctx context.Context, input dto.UpdateOrderRequest)
 		paramCount++
 	}
 
+	setClauses = append(setClauses, "updated_at = NOW()")
+
 	if len(setClauses) == 0 {
 		return nil
 	}

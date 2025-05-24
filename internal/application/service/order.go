@@ -5,6 +5,7 @@ import (
 	"aroma-hub/internal/models"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -72,8 +73,11 @@ func (s *Service) CreateOrder(ctx context.Context, input dto.CreateOrderRequest)
 		return err
 	}
 
-	msgText := fmt.Sprintf("Order %s placed", orderID)
-	go s.messagingProvider.BroadcastMessage(ctx, msgText)
+	go func() {
+		if err := s.broadcastPlacedOrder(ctx, order.ID); err != nil {
+			fmt.Printf("failed to broadcast order: %v\n", err)
+		}
+	}()
 
 	return nil
 }
@@ -92,7 +96,10 @@ func (s *Service) validateOrderInput(ctx context.Context, input dto.CreateOrderR
 	return nil
 }
 
-func (s *Service) prepareProductInfo(ctx context.Context, productItems []dto.ProductOrder) (productInfoResult, error) {
+func (s *Service) prepareProductInfo(
+	ctx context.Context,
+	productItems []dto.ProductOrder,
+) (productInfoResult, error) {
 	result := productInfoResult{
 		productIDs:   make([]string, 0, len(productItems)),
 		productByID:  make(map[string]models.Product),
@@ -186,7 +193,11 @@ func (s *Service) validateProductStock(product models.Product, requestedQuantity
 	return nil
 }
 
-func (s *Service) executeOrderTransaction(ctx context.Context, order models.Order, orderData OrderData) error {
+func (s *Service) executeOrderTransaction(
+	ctx context.Context,
+	order models.Order,
+	orderData OrderData,
+) error {
 	return s.transactor.ExecuteInTx(ctx, []pgxtransactor.Storage{s.storage}, func() error {
 		if _, err := s.storage.CreateOrder(ctx, order); err != nil {
 			return err
@@ -225,6 +236,126 @@ func (s *Service) validatePromoCode(ctx context.Context, promoCode string) error
 	}
 
 	return nil
+}
+
+func (s *Service) broadcastPlacedOrder(ctx context.Context, id string) error {
+	orders, _, err := s.storage.ListOrders(ctx, dto.ListOrderFilter{
+		IDs: []string{id},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to fetch order: %w", err)
+	}
+	if len(orders) == 0 {
+		return fmt.Errorf("order %s not found", id)
+	}
+	order := orders[0]
+
+	orderProducts, _, err := s.storage.ListOrderProducts(ctx, dto.ListOrderProductFilter{
+		OrderIDs: []string{id},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to fetch order products: %w", err)
+	}
+
+	productIDs := make([]string, 0, len(orderProducts))
+	for _, op := range orderProducts {
+		productIDs = append(productIDs, op.ProductID)
+	}
+
+	products, _, err := s.storage.ListProducts(ctx, dto.ListProductFilter{
+		IDs: productIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to fetch products: %w", err)
+	}
+
+	productMap := make(map[string]models.Product)
+	for _, p := range products {
+		productMap[p.ID] = p
+	}
+
+	message := buildOrderMessage(order, orderProducts, productMap)
+	if err := s.messagingProvider.BroadcastMessage(ctx, message); err != nil {
+		return fmt.Errorf("failed to broadcast message: %w", err)
+	}
+
+	return nil
+}
+
+func buildOrderMessage(
+	order models.Order,
+	orderProducts []models.OrderProduct,
+	productMap map[string]models.Product,
+) string {
+	var sb strings.Builder
+
+	sb.WriteString("📦 Новий замовлення!\n\n")
+
+	sb.WriteString(fmt.Sprintf("Клієнт: %s\n", order.FullName))
+	sb.WriteString(fmt.Sprintf("Телефон: %s\n", order.PhoneNumber))
+	sb.WriteString(fmt.Sprintf("Адреса: %s\n", order.Address))
+	sb.WriteString(fmt.Sprintf("Спосіб оплати: %s\n", translatePaymentMethod(order.PaymentMethod)))
+	sb.WriteString(fmt.Sprintf("Тип контакту: %s\n", translateContactType(order.ContactType)))
+	sb.WriteString(fmt.Sprintf("Сума до сплати: %d грн\n", order.AmountToPay))
+	sb.WriteString(fmt.Sprintf("Статус: %s\n", translateOrderStatus(order.Status)))
+
+	sb.WriteString("\nТовари:\n")
+	for _, op := range orderProducts {
+		if p, ok := productMap[op.ProductID]; ok {
+			sb.WriteString(fmt.Sprintf("- %s, %d шт., %d грн\n", p.Name, op.Quantity, p.Price))
+		}
+	}
+
+	sb.WriteString(fmt.Sprintf("\nДата створення: %s\n", formatDateInUkrainian(order.CreatedAt)))
+
+	return sb.String()
+}
+
+func translatePaymentMethod(pm models.PaymentMethod) string {
+	switch pm {
+	case models.PaymentMethodIBAN:
+		return "ФОП"
+	case models.PaymentMethodCashOnDelivery:
+		return "Накладений платіж"
+	default:
+		return string(pm)
+	}
+}
+
+func translateContactType(ct models.ContactType) string {
+	switch ct {
+	case "Phone":
+		return "Телефон"
+	case "Email":
+		return "Електронна пошта"
+	default:
+		return string(ct)
+	}
+}
+
+func translateOrderStatus(os models.OrderStatus) string {
+	switch os {
+	case "Pending":
+		return "В очікуванні"
+	case "Confirmed":
+		return "Підтверджено"
+	case "Shipped":
+		return "Відправлено"
+	case "Delivered":
+		return "Доставлено"
+	default:
+		return string(os)
+	}
+}
+
+func formatDateInUkrainian(t time.Time) string {
+	months := []string{
+		"січня", "лютого", "березня", "квітня", "травня", "червня",
+		"липня", "серпня", "вересня", "жовтня", "листопада", "грудня",
+	}
+
+	return fmt.Sprintf("%02d %s %d, %02d:%02d",
+		t.Day(), months[t.Month()-1], t.Year(), t.Hour(), t.Minute())
 }
 
 func (s *Service) ListOrders(ctx context.Context, filter dto.ListOrderFilter) (dto.OrderResponse, error) {

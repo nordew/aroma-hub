@@ -120,9 +120,6 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.id": filter.IDs})
 		countQuery = countQuery.Where(squirrel.Eq{"p.id": filter.IDs})
 	}
-	
-	baseQuery = baseQuery.Where(squirrel.Eq{"p.is_best_seller": true})
-	countQuery = countQuery.Where(squirrel.Eq{"p.is_best_seller": true})
 
 	if filter.CategoryID != "" {
 		baseQuery = baseQuery.Where(squirrel.Eq{"p.category_id": filter.CategoryID})
@@ -155,6 +152,10 @@ func (s *Storage) buildProductSearchQuery(filter dto.ListProductFilter) (squirre
 	if filter.StockAmount > 0 {
 		baseQuery = baseQuery.Where(squirrel.GtOrEq{"p.stock_amount": filter.StockAmount})
 		countQuery = countQuery.Where(squirrel.GtOrEq{"p.stock_amount": filter.StockAmount})
+	}
+	if filter.OnlyBestSellers {
+		baseQuery = baseQuery.Where(squirrel.Eq{"p.is_best_seller": true})
+		countQuery = countQuery.Where(squirrel.Eq{"p.is_best_seller": true})
 	}
 
 	return baseQuery, countQuery

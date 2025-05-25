@@ -289,20 +289,23 @@ func buildOrderMessage(
 ) string {
 	var sb strings.Builder
 
-	sb.WriteString("📦 Новий замовлення!\n\n")
+	sb.WriteString("📦 Нове замовлення!\n\n")
 
+	amountToPay := order.AmountToPay.IntPart()
 	sb.WriteString(fmt.Sprintf("Клієнт: %s\n", order.FullName))
 	sb.WriteString(fmt.Sprintf("Телефон: %s\n", order.PhoneNumber))
 	sb.WriteString(fmt.Sprintf("Адреса: %s\n", order.Address))
 	sb.WriteString(fmt.Sprintf("Спосіб оплати: %s\n", translatePaymentMethod(order.PaymentMethod)))
 	sb.WriteString(fmt.Sprintf("Тип контакту: %s\n", translateContactType(order.ContactType)))
-	sb.WriteString(fmt.Sprintf("Сума до сплати: %d грн\n", order.AmountToPay))
+	sb.WriteString(fmt.Sprintf("Сума до сплати: %d грн\n", amountToPay))
 	sb.WriteString(fmt.Sprintf("Статус: %s\n", translateOrderStatus(order.Status)))
 
 	sb.WriteString("\nТовари:\n")
 	for _, op := range orderProducts {
 		if p, ok := productMap[op.ProductID]; ok {
-			sb.WriteString(fmt.Sprintf("- %s, %d шт., %d грн\n", p.Name, op.Quantity, p.Price))
+			price := p.Price.IntPart()
+
+			sb.WriteString(fmt.Sprintf("- %s, %d шт., %d грн\n", p.Name, op.Quantity, price))
 		}
 	}
 

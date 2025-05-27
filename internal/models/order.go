@@ -38,6 +38,7 @@ type ContactType string
 const (
 	ContactTypeTelegram ContactType = "telegram"
 	ContactTypePhone    ContactType = "phone"
+	ContactDontDisturb  ContactType = "dont_disturb"
 )
 
 type OrderStatus string
